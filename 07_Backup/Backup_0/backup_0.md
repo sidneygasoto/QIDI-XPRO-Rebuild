@@ -26,3 +26,20 @@ SHA256:
 
 Observações:
 Primeiro marco oficial do projeto.
+
+## Correção de rede
+
+Durante a validação do Backup_0 foi identificado alerta ARP no ESET.
+
+A causa foi a ativação simultânea das interfaces Ethernet e Wi-Fi do CB1.
+
+Interfaces detectadas:
+
+| Interface | IP | MAC |
+|---|---|---|
+| eth0 | 192.168.10.126 | BA:03:65:C8:78:D1 |
+| wlan0 | 192.168.10.127 | DC:84:03:E8:C9:60 |
+
+Não foi identificado spoofing de MAC.
+
+A interface Wi-Fi foi desabilitada para operação normal, mantendo Ethernet como interface principal.
