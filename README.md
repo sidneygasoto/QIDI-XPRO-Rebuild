@@ -1,105 +1,136 @@
-# QIDI X-Pro Rebuild
+# Retrofit Completo da QIDI X-Pro
 
-> Retrofit completo da **QIDI X-Pro** para uma plataforma moderna baseada em **Klipper**, utilizando hardware aberto, foco em confiabilidade, facilidade de manutenção e documentação completa.
+> Modernização completa da impressora 3D QIDI X-Pro utilizando hardware aberto, Klipper e uma arquitetura orientada à confiabilidade, manutenção e documentação.
 
----
-
-## 📖 Sobre o projeto
-
-A QIDI X-Pro é uma excelente impressora em termos de estrutura mecânica, porém sua eletrônica e software ficaram defasados ao longo dos anos.
-
-O objetivo deste projeto é reconstruir completamente a impressora utilizando hardware moderno e software open source, preservando sua robustez mecânica e adicionando recursos encontrados apenas em impressoras de última geração.
-
-Este repositório documenta todas as etapas do retrofit, desde a desmontagem até a calibração final.
+![Status](https://img.shields.io/badge/status-Em%20Desenvolvimento-orange)
+![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
-# 🎯 Objetivos
+# Sobre o Projeto
 
-- Modernizar completamente a eletrônica
-- Migrar para Klipper
-- Melhorar a qualidade de impressão
-- Aumentar a velocidade de impressão
-- Facilitar futuras manutenções
-- Documentar todas as modificações
-- Utilizar somente hardware aberto
-- Criar um projeto totalmente reproduzível
+Este projeto tem como objetivo realizar um **retrofit completo** da impressora **QIDI X-Pro**, substituindo toda a eletrônica original por uma plataforma moderna baseada em **Klipper**.
+
+O foco não é apenas atualizar a impressora, mas desenvolver uma plataforma robusta, confiável e totalmente documentada, utilizando componentes amplamente disponíveis e soluções de hardware aberto.
+
+Todo o desenvolvimento é realizado seguindo princípios de engenharia, com validação prática de cada etapa, documentação detalhada das decisões técnicas e criação de backups em marcos importantes do projeto.
 
 ---
 
-# 📊 Estado do Projeto
+# Objetivos
 
-| Etapa | Status |
-|-------|:------:|
-| Planejamento | ✅ |
-| Documentação | 🚧 |
-| Hardware adquirido | ✅ |
-| Instalação da M8P | ⏳ |
-| Instalação do CB1 | ⏳ |
-| Configuração do Klipper | ⏳ |
-| Calibração | ⏳ |
-
-### Legenda
-
-- ✅ Concluído
-- 🚧 Em andamento
-- ⏳ Pendente
+- Modernizar completamente a eletrônica da impressora.
+- Utilizar exclusivamente hardware aberto sempre que possível.
+- Melhorar a confiabilidade do equipamento.
+- Facilitar futuras manutenções.
+- Melhorar a qualidade de impressão.
+- Criar uma documentação completa do retrofit.
+- Disponibilizar um projeto totalmente reproduzível.
 
 ---
 
-# 🖨 Impressora
+## Componentes Principais
 
-**Modelo:** QIDI X-Pro
-
-Arquitetura:
-
-- Dual Extruder
-- Dois hotends independentes
-- Mesa aquecida
-- Câmara fechada
+| Componente | Modelo |
+|------------|--------|
+| Controladora | BIGTREETECH Manta M8P V2.0 |
+| Host | BIGTREETECH CB1 V2.2 |
+| Drivers | TMC2209 UART |
+| Hotends | Trianglelab Ceramic Hotend |
+| Sensor de temperatura | PTC100 |
+| Sensor de nivelamento | AECO M8 PNP |
+| Acelerômetro principal | ADXL345 |
+| Acelerômetro reserva | MPU6050 |
 
 ---
 
-# 🔧 Hardware
+# Configuração Mecânica
 
-## Controladora
+A arquitetura mecânica original da QIDI X-Pro será preservada.
 
-- BIGTREETECH Manta M8P V2.0
+Características:
 
-## Host
+- Dois hotends independentes.
+- Dois extrusores independentes.
+- Mesmo carro de impressão.
+- Arquitetura Dual Extruder original.
 
-- BIGTREETECH CB1
+Não será realizada conversão para IDEX.
 
-## Drivers
+---
 
-- 5 × TMC2209 (UART)
+# Hotends
 
-## Hotends
+Os hotends originais foram substituídos por:
 
-- 2 × Hotends cerâmicos
-- Sensores PT100
-- Temperatura máxima: **320 °C**
+- 2 × Trianglelab Ceramic Hotend
+- Sensores PTC100
+- Temperatura máxima de 320 °C
 
-## Sensor de nivelamento
+---
 
-- Sensor indutivo industrial AECO
-- Corpo M8
+# Sensor de Nivelamento
+
+Será utilizado um sensor indutivo industrial da AECO.
+
+Características:
+
+- M8
 - Saída PNP
-- Montado entre os dois hotends
+- Instalação entre os dois hotends
+- Distância de detecção aproximada de 0,9 mm sobre a chapa PEI original
 
-## Sensores
+Após a montagem será executado:
 
-- ADXL345
-- MPU6050 (reserva)
+- PROBE_ACCURACY
 
-## Câmeras
+para validação da repetibilidade.
+
+---
+
+# Iluminação
+
+Foi desenvolvida uma placa exclusiva para este projeto contendo:
+
+- três LEDs brancos;
+- resistores de 100 Ω;
+- montagem entre os dois hotends.
+
+Objetivos:
+
+- melhorar a visualização da impressão;
+- auxiliar o Obico;
+- melhorar a qualidade das imagens da câmera.
+
+---
+
+# Sensores
+
+## Principal
+
+- ADXL345 (SPI)
+
+## Reserva
+
+- MPU6050 (I²C)
+
+---
+
+# Câmeras
+
+Disponíveis:
 
 - Webcam USB 1,3 MP
 - Powerpack VX-8
 
+Inicialmente será utilizada a webcam USB devido à maior compatibilidade com Linux.
+
 ---
 
-# 💻 Software
+# Software
+
+O sistema será composto por:
 
 - Klipper
 - Moonraker
@@ -107,212 +138,105 @@ Arquitetura:
 - OrcaSlicer
 - Obico
 
----
+Integrações futuras:
 
-# 🚀 Recursos Planejados
-
-## Impressão
-
-- Pressure Advance
-- Input Shaper
-- Bed Mesh
-- Adaptive Mesh
-- PID Automático
-- Auto Z Offset
-
-## Monitoramento
-
-- Webcam
-- Timelapse
-- Obico
-- Monitoramento remoto
-
-## Automação
-
-- Controle inteligente dos ventiladores
-- LEDs automáticos
-- Macros inteligentes
-- Diagnóstico automático
+- Home Assistant
+- Dashboard de diagnóstico
 - Backup automático
+- Monitoramento dos drivers TMC2209
 
 ---
 
-# 📁 Estrutura do Repositório
+# Organização da Documentação
+
+Toda a documentação técnica encontra-se na pasta **docs/**.
+
+| Documento | Conteúdo |
+|------------|----------|
+| 00_Roadmap.md | Planejamento geral do projeto |
+| 01_Introducao.md | Objetivos e filosofia |
+| 02_Plataforma_CB1.md | Sistema operacional e configuração do CB1 |
+| 03_Manta_M8P.md | Configuração da controladora |
+| 04_Backups.md | Histórico dos backups |
+| 05_Instalacao_Klipper.md | Instalação do Klipper |
+| 06_Hardware_QIDI.md | Inventário da impressora |
+| 07_Esquema_Eletrico.md | Esquemas elétricos |
+| 08_Klipper_Configuration.md | Configuração do Klipper |
+| 09_Macros.md | Macros do Klipper |
+| 10_Calibracao.md | Procedimentos de calibração |
+| 11_Problemas_Conhecidos.md | Registro de problemas e soluções |
+| 12_Referencias.md | Datasheets e referências |
+
+---
+
+# Estrutura do Repositório
 
 ```text
-QIDI-XPRO-Rebuild/
-│
+QIDI-X-Pro-Retrofit/
+
 ├── README.md
-├── LICENSE
 ├── CHANGELOG.md
-├── .gitignore
-│
+├── LICENSE
 ├── docs/
-├── hardware/
-├── klipper/
+├── firmware/
+├── klipper_config/
 ├── cad/
-├── scripts/
-├── backups/
-└── images/
+├── stl/
+├── images/
+└── backups/
 ```
 
 ---
 
-# 📂 Estrutura dos Arquivos Klipper
+# Situação Atual
 
-```text
-klipper/
-│
-├── printer.cfg
-├── mcu.cfg
-├── steppers.cfg
-├── extruders.cfg
-├── heaters.cfg
-├── probe.cfg
-├── bed_mesh.cfg
-├── fans.cfg
-├── leds.cfg
-├── camera.cfg
-├── input_shaper.cfg
-├── pressure_advance.cfg
-├── macros.cfg
-└── backup/
-```
+## Concluído
+
+- Definição da arquitetura do retrofit.
+- Instalação do Debian 13 Minimal no CB1.
+- Atualização completa do sistema operacional.
+- Validação da comunicação Ethernet.
+- Acesso remoto via SSH.
+- Validação do funcionamento do SPI.
+- Criação do Backup_0.
 
 ---
 
-# 🏗 Filosofia do Projeto
+## Em andamento
 
-Este projeto segue alguns princípios fundamentais.
-
-## Confiabilidade
-
-Nenhuma ligação elétrica será realizada sem validação prévia.
-
-## Documentação
-
-Toda modificação será registrada.
-
-## Modularidade
-
-Toda configuração do Klipper será organizada em arquivos independentes.
-
-## Reprodutibilidade
-
-Qualquer pessoa deverá conseguir reproduzir este retrofit utilizando apenas esta documentação.
+- Instalação do ecossistema Klipper.
+- Caracterização completa da Manta M8P.
+- Inventário da QIDI X-Pro.
 
 ---
 
-# 📈 Melhorias em relação ao equipamento original
+# Filosofia do Projeto
 
-| Original | Retrofit |
-|-----------|-----------|
-| Firmware proprietário | Klipper |
-| Software antigo | OrcaSlicer |
-| Interface limitada | Fluidd |
-| Controle remoto limitado | Obico |
-| Sem Input Shaper | ADXL345 |
-| Eletrônica proprietária | Manta M8P |
-| Configuração fechada | Totalmente aberta |
-| Calibração limitada | Bed Mesh + Input Shaper |
+Este projeto segue algumas regras fundamentais:
+
+- Nunca energizar hardware sem checklist.
+- Nunca assumir pinagens sem confirmação.
+- Validar experimentalmente todas as conexões.
+- Documentar todas as decisões técnicas.
+- Comentar integralmente os arquivos de configuração.
+- Priorizar soluções robustas e de fácil manutenção.
 
 ---
 
-# 📅 Roadmap
+# Licença
 
-## Fase 1 — Plataforma
+Este projeto é distribuído sob a licença MIT.
 
-- Instalação da Manta M8P
-- Instalação do CB1
-- Instalação do Debian
-- Instalação do Klipper
-- Instalação do Moonraker
-- Instalação do Fluidd
+Consulte o arquivo `LICENSE` para mais informações.
 
 ---
 
-## Fase 2 — Hardware
+# Agradecimentos
 
-- Motores
-- Hotends
-- Mesa aquecida
-- Ventiladores
-- Sensores
+Agradecemos às comunidades de software e hardware livre que tornam projetos como este possíveis, especialmente aos desenvolvedores do Klipper, Moonraker, Fluidd e aos fabricantes que disponibilizam documentação técnica aberta.
 
 ---
 
-## Fase 3 — Calibração
+**Versão do documento:** 0.1.0
 
-- PID
-- Pressure Advance
-- Input Shaper
-- Bed Mesh
-- Auto Z Offset
-
----
-
-## Fase 4 — Recursos Avançados
-
-- Webcam
-- Timelapse
-- Obico
-- LEDs automáticos
-
----
-
-## Fase 5 — Otimização
-
-- Benchmark
-- Ajustes finos
-- Documentação final
-
----
-
-# 🔮 Melhorias Futuras
-
-- Sensor de temperatura da câmara
-- Dashboard de manutenção
-- Integração com Home Assistant
-- Diagnóstico dos TMC2209
-- Estatísticas da impressora
-- Atualizações automáticas
-- Monitoramento da eletrônica
-
----
-
-# 🤝 Contribuições
-
-Sugestões, melhorias e correções são muito bem-vindas.
-
-Caso encontre algum problema ou tenha alguma ideia para melhorar o projeto, abra uma *Issue* ou envie um *Pull Request*.
-
----
-
-# 📜 Licença
-
-Este projeto é distribuído sob a licença **MIT**.
-
----
-
-# ⚠ Aviso
-
-Este projeto envolve modificações elétricas e mecânicas na impressora.
-
-Toda alteração é realizada por conta e risco do usuário.
-
-Antes de energizar qualquer circuito:
-
-- confira toda a fiação;
-- valide as tensões de alimentação;
-- confirme a configuração do firmware;
-- execute os testes recomendados na documentação.
-
----
-
-# 🙏 Agradecimentos
-
-Agradecimentos à comunidade do Klipper, BIGTREETECH e a todos os desenvolvedores que contribuem para o ecossistema Open Source de impressão 3D.
-
----
-
-> **Objetivo final:** transformar uma QIDI X-Pro em uma plataforma moderna, confiável, totalmente documentada e preparada para futuras evoluções.
+**Última atualização:** 2026-07-06

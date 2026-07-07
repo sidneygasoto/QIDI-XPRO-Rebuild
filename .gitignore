@@ -1,0 +1,35 @@
+# ==========================================================
+# QIDI X-PRO Rebuild
+# ==========================================================
+
+# SD card images
+*.img
+*.img.xz
+*.img.gz
+*.wic
+*.wic.xz
+
+# Archives
+*.zip
+*.7z
+*.rar
+*.iso
+
+# Temporary files
+*.bak
+*.old
+*.tmp
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.pyc
+
+# VSCode
+.vscode/
+
+# Windows
+Thumbs.db
+Desktop.ini
