@@ -178,11 +178,11 @@ Placa desenvolvida especificamente para o projeto contendo:
 - [x] Atualizar sistema.
 - [x] Validar comunicação.
 - [x] Habilitar SPI.
-- [ ] Instalar Klipper.
-- [ ] Instalar Moonraker.
-- [ ] Instalar Fluidd.
-- [ ] Compilar firmware da Manta M8P.
-- [ ] Testar comunicação USB.
+- [x] Instalar Klipper.
+- [x] Instalar Moonraker.
+- [X] Instalar Fluidd.
+- [X] Compilar firmware da Manta M8P.
+- [X] Testar comunicação USB.
 
 ---
 
