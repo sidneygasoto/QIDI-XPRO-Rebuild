@@ -1,0 +1,16 @@
+[Unit]
+Description=Klipper 3D Printer Firmware
+After=network.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+User=sidney
+WorkingDirectory=/opt/3dprinter/klipper
+Environment="VIRTUAL_ENV=/opt/3dprinter/klipper/venv"
+Environment="PATH=/opt/3dprinter/klipper/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/opt/3dprinter/klipper/venv/bin/python /opt/3dprinter/klipper/klippy/klippy.py /opt/3dprinter/printer_data/config/printer.cfg -a /tmp/klippy_uds
+Restart=always
+RestartSec=10
