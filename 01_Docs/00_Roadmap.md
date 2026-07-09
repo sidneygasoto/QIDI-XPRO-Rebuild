@@ -88,7 +88,7 @@ Durante todo o projeto serão seguidas as diretrizes:
 ## Hotends
 
 - 2 × Trianglelab Ceramic Hotend (originais)
-- Sensores de temperatura PTC100
+- Sensores de temperatura NTC100
 - Temperatura máxima de operação: 320 °C
 
 ## Sistema de Extrusão

@@ -201,7 +201,7 @@ Não será realizada conversão para IDEX.
 Serão utilizados:
 
 - dois Trianglelab Ceramic Hotend (originais);
-- sensores de temperatura PTC100;
+- sensores de temperatura NTC100;
 - temperatura máxima de operação de 320 °C.
 
 ---

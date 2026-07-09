@@ -47,7 +47,7 @@ Representa a conclusão da preparação da plataforma de hardware e software nec
 Substituição dos hotends originais por:
 
 - 2 × Trianglelab Ceramic Hotend.
-- Sensores PTC100.
+- Sensores NTC100.
 - Temperatura máxima de 320 °C.
 
 #### Sensor de Nivelamento

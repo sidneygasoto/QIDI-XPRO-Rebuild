@@ -38,7 +38,7 @@ Todo o desenvolvimento é realizado seguindo princípios de engenharia, com vali
 | Host | BIGTREETECH CB1 V2.2 |
 | Drivers | TMC2209 UART |
 | Hotends | Trianglelab Ceramic Hotend |
-| Sensor de temperatura | PTC100 |
+| Sensor de temperatura | NTC100 |
 | Sensor de nivelamento | AECO M8 PNP |
 | Acelerômetro principal | ADXL345 |
 | Acelerômetro reserva | MPU6050 |
@@ -65,7 +65,7 @@ Não será realizada conversão para IDEX.
 Os hotends originais foram substituídos por:
 
 - 2 × Trianglelab Ceramic Hotend
-- Sensores PTC100
+- Sensores NTC100
 - Temperatura máxima de 320 °C
 
 ---
@@ -89,13 +89,14 @@ para validação da repetibilidade.
 
 ---
 
-# Iluminação
+# Iluminação em baixo dos Hotends
 
 Foi desenvolvida uma placa exclusiva para este projeto contendo:
 
 - três LEDs brancos;
 - resistores de 100 Ω;
 - montagem entre os dois hotends.
+- Alimentada por 5V - PWM
 
 Objetivos:
 
