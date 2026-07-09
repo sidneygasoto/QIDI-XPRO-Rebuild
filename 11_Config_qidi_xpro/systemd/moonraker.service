@@ -1,0 +1,23 @@
+[Unit]
+Description=Moonraker API Server
+After=network.target klipper.service
+Requires=klipper.service
+
+[Service]
+Type=simple
+User=sidney
+
+WorkingDirectory=/opt/3dprinter/moonraker
+
+Environment="MOONRAKER_DATA_PATH=/opt/3dprinter/printer_data"
+Environment="VIRTUAL_ENV=/opt/3dprinter/moonraker/venv"
+Environment="PATH=/opt/3dprinter/moonraker/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+ExecStart=/opt/3dprinter/moonraker/venv/bin/python \
+/opt/3dprinter/moonraker/moonraker/moonraker.py
+
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
