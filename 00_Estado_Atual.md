@@ -52,3 +52,98 @@ Arquivos ativos:
 - Teste motores
 - Homing
 - Input Shaper ADXL345
+
+# 21/07/2026
+# Estado Atual do Projeto
+
+## Hardware
+
+- BIGTREETECH Manta M8P V2.0
+- BIGTREETECH CB1
+- 5× TMC2209
+- 2× Hotends
+- ADXL345
+
+---
+
+## Sistema
+
+✔ Armbian
+
+✔ Klipper
+
+✔ Moonraker
+
+---
+
+## Comunicação
+
+✔ USB
+
+✔ UART
+
+✔ SPI
+
+---
+
+## Movimento
+
+✔ X
+
+✔ Y
+
+✔ Z
+
+---
+
+## Homing
+
+✔ Sensorless X
+
+✔ Sensorless Y
+
+✔ Endstop Z
+
+✔ Probe
+
+---
+
+## Temperatura
+
+✔ Bed
+
+✔ Extruder
+
+✔ Extruder1
+
+---
+
+## Input Shaper
+
+X
+
+- 3hump_ei
+- 64.8 Hz
+
+Y
+
+- mzv
+- 31.2 Hz
+
+---
+
+## PID
+
+✔ Bed
+
+✔ Extruder
+
+✔ Extruder1
+
+---
+
+## Situação
+
+Sistema totalmente operacional.
+
+A próxima fase será dedicada exclusivamente à calibração geométrica da impressora.

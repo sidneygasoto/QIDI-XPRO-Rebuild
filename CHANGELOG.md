@@ -5,6 +5,48 @@ Todas as mudanças relevantes deste projeto serão documentadas neste arquivo.
 Este projeto segue o padrão **Keep a Changelog** e utiliza **Semantic Versioning (SemVer)**.
 
 ---
+# Changelog
+
+Todas as alterações relevantes deste projeto serão documentadas neste arquivo.
+
+O formato segue o princípio do Keep a Changelog.
+
+---
+
+# v0.1.0 — Infraestrutura funcional
+
+Data: Julho/2026
+
+## Adicionado
+
+- Instalação do Armbian 26.5.1 na BIGTREETECH CB1.
+- Instalação do Klipper Host.
+- Instalação do Moonraker.
+- Comunicação USB entre CB1 e Manta M8P V2.0.
+- Configuração inicial da impressora.
+- Configuração dos cinco drivers TMC2209 em UART.
+- Configuração dos dois hotends independentes.
+- Configuração da mesa aquecida.
+- Configuração dos ventiladores.
+- Configuração do Sensorless Homing.
+- Configuração do endstop mecânico de Z.
+- Configuração do probe indutivo.
+- Atualização do firmware STM32 para Klipper v0.13.
+- Integração do ADXL345 utilizando SPI3 da Manta.
+- Calibração completa do Input Shaper.
+- Calibração PID dos dois hotends.
+- Calibração PID da mesa.
+
+## Alterado
+
+- Abandonado o uso do Linux MCU da CB1 para o ADXL345.
+- Migração definitiva para SPI3 da Manta.
+
+## Corrigido
+
+- Incompatibilidade Host/MCU.
+- Correção do Chip Select do ADXL345.
+- Ajustes de limites dos eixos.
 
 # [0.1.0] - 2026-07-06
 

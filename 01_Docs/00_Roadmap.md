@@ -1,301 +1,149 @@
+# QIDI-XPRO-Rebuild - Roadmap do Projeto
+
+Projeto de reconstrução e modernização da impressora 3D QIDI X-Pro utilizando Klipper, BIGTREETECH Manta M8P V2.0 e CB1 como host.
+
+---
+
+# Visão geral
+
+O objetivo do projeto é substituir a eletrônica original da QIDI X-Pro por uma arquitetura aberta baseada em Klipper, mantendo a estrutura mecânica original e evoluindo a máquina para uma plataforma moderna, configurável e expansível.
+
+Arquitetura definida:
+
+| Componente | Modelo |
+|---|---|
+| Controladora | BIGTREETECH Manta M8P V2.0 |
+| MCU | STM32H723 |
+| Host | BIGTREETECH CB1 |
+| Firmware | Klipper |
+| Interface | Fluidd |
+| API | Moonraker |
+| Drivers | TMC2209 UART |
+| Extrusão | Dual Extruder |
+| Sensores temperatura | NTC 100K Generic 3950 |
+| Sensor de vibração | ADXL345 |
+
+---
+
 # Roadmap
 
-> Projeto: Retrofit Completo da QIDI X-Pro
+## v0.1.0 ✅
 
-**Versão:** 0.1.0
-**Última atualização:** 2026-07-06
-**Status:** Em desenvolvimento
+Infraestrutura concluída.
 
 ---
 
-# Objetivo
+## v0.2.0
 
-Este documento é o **plano diretor do projeto**.
+Calibração da impressora.
 
-Ele registra o estado atual do retrofit, as decisões de engenharia, os marcos alcançados, as etapas futuras e serve como referência para retomar o desenvolvimento em qualquer momento.
+Objetivos:
 
-Sempre que uma etapa importante for concluída, este documento será atualizado.
-
----
-
-# Objetivos do Projeto
-
-Realizar um retrofit completo da impressora **QIDI X-Pro**, substituindo sua eletrônica e software originais por uma plataforma moderna baseada em **Klipper**, mantendo a robustez mecânica da máquina e priorizando:
-
-- confiabilidade;
-- facilidade de manutenção;
-- documentação completa;
-- hardware aberto;
-- alto desempenho;
-- reprodutibilidade.
+- Probe Offset
+- Bed Mesh
+- Z Offset
+- Offsets entre hotends
+- Primeiro layer
+- Ajuste fino da extrusão
 
 ---
 
-# Filosofia de Engenharia
+## v0.3.0
 
-Durante todo o projeto serão seguidas as diretrizes:
+Recursos avançados.
 
-- Nunca energizar hardware sem checklist.
-- Nunca assumir informações sem confirmação.
-- Validar experimentalmente todas as ligações.
-- Documentar todas as decisões técnicas.
-- Comentar integralmente todas as configurações.
-- Priorizar soluções robustas e de fácil manutenção.
-- Registrar problemas e respectivas soluções.
-- Criar backups em todos os marcos importantes.
+- Pressure Advance
+- Macros
+- LEDs
+- Filament Runout
+- Timelapse
+- Câmera
 
 ---
 
-# Arquitetura Definida
+## v1.0.0
 
-## Controladora
+Retrofit totalmente concluído.
 
-- BIGTREETECH Manta M8P V2.0
+- Documentação completa
+- Hardware validado
+- Impressora pronta para produção
+---
 
-## Host
+# Calibração mecânica
 
-- BIGTREETECH CB1 V2.2
+Pendente:
 
-## Drivers
-
-- 5 × TMC2209 (UART)
-
-## Firmware
-
-- Klipper
-
-## Interface Web
-
-- Moonraker
-- Fluidd
-
-## Fatiador
-
-- OrcaSlicer
-
-## Monitoramento
-
-- Obico
-
-## Integração futura
-
-- Home Assistant
+- Nivelamento da mesa.
+- Z offset.
+- Mesh bed leveling.
+- Ajuste dos eixos.
 
 ---
 
-# Hardware da Impressora
+# Finalização
 
-## Hotends
+Pendente:
 
-- 2 × Trianglelab Ceramic Hotend (originais)
-- Sensores de temperatura NTC100
-- Temperatura máxima de operação: 320 °C
-
-## Sistema de Extrusão
-
-Será mantida a arquitetura original:
-
-- dois hotends;
-- dois extrusores;
-- um único carro de impressão.
-
-Não haverá conversão para IDEX.
+- Câmera.
+- Macros Klipper.
+- Backup automático.
+- Documentação final.
+- Perfil de impressão.
 
 ---
 
-## Sensor de Nivelamento
+# Organização do desenvolvimento
 
-- Sensor indutivo AECO
-- M8
-- Saída PNP
+## PC
 
-Validação futura:
+Responsável por:
 
-- PROBE_ACCURACY
-
----
-
-## Sensores
-
-### Principal
-
-- ADXL345 (SPI)
-
-### Reserva
-
-- MPU6050 (I²C)
+- Documentação.
+- Manuais.
+- Esquemas.
+- Diagramas.
+- Revisão dos arquivos Markdown.
 
 ---
 
-## Iluminação
+## CB1
 
-Placa desenvolvida especificamente para o projeto contendo:
+Responsável por:
 
-- três LEDs brancos;
-- resistores de 100 Ω;
-- instalada entre os hotends.
-
----
-
-# Situação Atual
-
-## Concluído
-
-### Hardware
-
-- Arquitetura definida.
-- Componentes principais adquiridos.
-- Hotends substituídos.
-- Sensor de nivelamento instalado.
-- Sistema de iluminação instalado.
-
-### Plataforma
-
-- CB1 instalado.
-- Debian 13 Minimal instalado.
-- Sistema atualizado.
-- Ethernet validada.
-- SSH validado.
-- SPI validado.
-- GPIO validado.
-- I²C validado.
-- UART validada.
-- Backup_0 criado.
+- Configurações reais.
+- Testes.
+- Serviços.
+- Firmware.
+- Logs.
 
 ---
 
-## Em andamento
+# Milestone v0.1.0
 
-- Instalação do ecossistema Klipper.
+## Objetivo
 
----
+Concluir toda a infraestrutura necessária para transformar a QIDI X-Pro em uma plataforma Klipper totalmente funcional.
 
-# Próximas Etapas
+## Principais entregas
 
-## Etapa 1 — Plataforma
+- Armbian instalado.
+- Klipper Host configurado.
+- Moonraker configurado.
+- Comunicação USB validada.
+- Firmware da Manta atualizado.
+- Configuração dos motores.
+- Configuração dos dois extrusores.
+- Sensorless Homing.
+- Probe indutivo.
+- PID dos aquecedores.
+- ADXL345 via SPI3.
+- Input Shaper calibrado.
 
-- [x] Instalar Debian.
-- [x] Atualizar sistema.
-- [x] Validar comunicação.
-- [x] Habilitar SPI.
-- [x] Instalar Klipper.
-- [x] Instalar Moonraker.
-- [X] Instalar Fluidd.
-- [X] Compilar firmware da Manta M8P.
-- [X] Testar comunicação USB.
+## Estado
 
----
+A plataforma encontra-se estável e pronta para iniciar a fase de calibração geométrica.
 
-## Etapa 2 — Hardware
+## Próxima milestone
 
-- [ ] Inventário completo da impressora.
-- [ ] Identificação dos motores.
-- [ ] Identificação dos ventiladores.
-- [ ] Identificação da fonte.
-- [ ] Identificação dos sensores.
-- [ ] Identificação completa do cabeamento.
-
----
-
-## Etapa 3 — Elétrica
-
-- [ ] Esquema elétrico.
-- [ ] Pinagem da Manta M8P.
-- [ ] Pinagem do CB1.
-- [ ] Ligações dos ventiladores.
-- [ ] Ligações dos hotends.
-- [ ] Ligações dos sensores.
-
----
-
-## Etapa 4 — Klipper
-
-- [ ] Configuração inicial.
-- [ ] Configuração dos TMC2209.
-- [ ] Configuração dos hotends.
-- [ ] Configuração do sensor indutivo.
-- [ ] Configuração dos ventiladores.
-- [ ] Configuração dos LEDs.
-
----
-
-## Etapa 5 — Calibração
-
-- [ ] PID Hotend 0.
-- [ ] PID Hotend 1.
-- [ ] PID Mesa.
-- [ ] PROBE_ACCURACY.
-- [ ] Bed Mesh.
-- [ ] Input Shaper.
-- [ ] Pressure Advance.
-
----
-
-## Etapa 6 — Recursos Avançados
-
-- [ ] Obico.
-- [ ] Home Assistant.
-- [ ] Dashboard de diagnóstico.
-- [ ] Monitoramento dos TMC2209.
-- [ ] Monitoramento do CB1.
-- [ ] Backup automático.
-- [ ] Macros de manutenção.
-
----
-
-# Marcos do Projeto
-
-| Versão | Marco |
-|--------:|-------|
-| 0.1.0 | Foundation |
-| 0.2.0 | Klipper instalado |
-| 0.3.0 | Primeira comunicação com a Manta |
-| 0.4.0 | Primeira impressão |
-| 0.5.0 | Impressora funcional |
-| 1.0.0 | Retrofit concluído |
-
----
-
-# Decisões de Engenharia
-
-## Arquitetura
-
-Foi decidido manter a arquitetura mecânica original da QIDI X-Pro.
-
-Justificativa:
-
-- menor custo;
-- maior confiabilidade;
-- menor complexidade mecânica;
-- preservação da robustez original.
-
----
-
-## ADXL345
-
-Será conectado diretamente ao CB1 utilizando SPI.
-
-Justificativa:
-
-- menor latência;
-- maior taxa de amostragem;
-- segue a recomendação do Klipper;
-- reduz carga sobre a MCU STM32.
-
----
-
-## Documentação
-
-Toda decisão técnica deverá conter justificativa.
-
-Nenhuma alteração será realizada sem atualização da documentação correspondente.
-
----
-
-# Referências
-
-- README.md
-- CHANGELOG.md
-- docs/02_Plataforma_CB1.md
-- docs/03_Manta_M8P.md
-- docs/04_Backups.md
+v0.2.0 — Calibração Mecânica
