@@ -1,0 +1,14 @@
+Sist. Arq.      Tam. Usado Disp. Uso% Montado em
+udev            438M     0  438M   0% /dev
+tmpfs            97M  3,9M   94M   4% /run
+/dev/mmcblk0p2   58G  5,4G   52G  10% /
+tmpfs           485M     0  485M   0% /dev/shm
+tmpfs           5,0M     0  5,0M   0% /run/lock
+tmpfs           1,0M     0  1,0M   0% /run/credentials/systemd-resolved.service
+tmpfs           485M     0  485M   0% /tmp
+/dev/mmcblk0p1  256M   96M  161M  38% /boot
+/dev/zram1       47M   27M   17M  63% /var/log
+tmpfs           1,0M     0  1,0M   0% /run/credentials/systemd-journald.service
+tmpfs           1,0M     0  1,0M   0% /run/credentials/getty@tty1.service
+tmpfs           1,0M     0  1,0M   0% /run/credentials/serial-getty@ttyS0.service
+tmpfs            97M  4,0K   97M   1% /run/user/1000

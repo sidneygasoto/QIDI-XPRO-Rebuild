@@ -1,0 +1,1 @@
+Linux bigtreetech-cb1 7.0.2-vendor-sunxi64 #1 SMP PREEMPT Thu Apr 30 15:24:52 CST 2026 aarch64 GNU/Linux
