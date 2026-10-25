@@ -1,0 +1,12 @@
+diff --git a/klippy/extras/metrology/metrology.py b/klippy/extras/metrology/metrology.py
+index 0aaaea718..ebcff4b85 100644
+--- a/klippy/extras/metrology/metrology.py
++++ b/klippy/extras/metrology/metrology.py
+@@ -422,7 +422,6 @@ class Metrology:
+     ####################################################################
+ 
+     def cmd_METROLOGY_CAPTURE_DEVICE(self, gcmd):
+-
+         name = gcmd.get(
+             "NAME",
+             None

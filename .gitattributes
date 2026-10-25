@@ -1,0 +1,22 @@
+# Normalização de fim de linha
+#
+# O repositório é editado no Windows (core.autocrlf=true) e a CB1 roda Linux.
+# Arquivos espelhados da máquina são verificados por SHA256: qualquer conversão
+# de EOL quebraria o MANIFEST e enviaria configuração diferente para o Klipper.
+
+* text=auto
+
+# Espelhos da máquina e código preservado: bytes exatos, sem conversão
+03_Klipper_Config/**  -text
+05_Metrology/source/** -text
+05_Metrology/backup/**  -text
+07_Backup/**            -text
+11_Config_qidi_xpro/**  -text
+
+# Binários
+*.bin   -text
+*.pdf   -text
+*.png   -text
+*.jpg   -text
+*.jpeg  -text
+*.tgz   -text

@@ -1,0 +1,50 @@
+# Klipper git state - metrology
+captured: 2026-10-25T13:03:44-03:00
+
+## feature/metrology-framework
+ M klippy/extras/metrology/calibration.py
+ M klippy/extras/metrology/geometry.py
+MM klippy/extras/metrology/metrology.py
+ M klippy/extras/metrology/models.py
+ M klippy/extras/metrology/persistence.py
+?? klippy/extras/metrology/.vscode/
+?? klippy/extras/metrology/AGENTS.md
+?? klippy/extras/metrology/CONTINUE.md
+?? klippy/extras/metrology/CONTRIBUTING.md
+?? klippy/extras/metrology/README.md
+?? klippy/extras/metrology/ROADMAP.md
+?? klippy/extras/metrology/machine.py
+?? klippy/extras/metrology/metrology.code-workspace
+?? klippy/extras/metrology/tests/
+
+## log
+f5342a1ce Add Metrology data models and geometry module
+1ec034cec Refactor Metrology into Python package
+cef3494dc Add initial Metrology extension
+7e64fc842 rp2040: Fix off-by-one bug in i2c.c
+d6ea62542 docs: Corrected the z_thermal_adjust example
+c707dd192 sht3x: Fix CRC computation when high byte is zero
+ccdb77176 probe_eddy_current: Separate least squares math from EddyTap class
+430a2a8a0 spi_flash: remove invalid reference to "long"
+b4424a658 docs: note fast spi option in sdcard_updates.md
+8a2da852f spi_flash: add support for fast SPI speeds
+
+## branches
+* feature/metrology-framework f5342a1ce Add Metrology data models and geometry module
+  master                      1ec034cec [origin/master: ahead 2, behind 8] Refactor Metrology into Python package
+
+## diffstat (unstaged)
+ klippy/extras/metrology/calibration.py |  154 +++++
+ klippy/extras/metrology/geometry.py    |  128 +++-
+ klippy/extras/metrology/metrology.py   | 1060 +++++++++++++++++++-------------
+ klippy/extras/metrology/models.py      |  121 +++-
+ klippy/extras/metrology/persistence.py |   61 ++
+ 5 files changed, 1074 insertions(+), 450 deletions(-)
+
+## diffstat (staged)
+ klippy/extras/metrology/metrology.py | 1 -
+ 1 file changed, 1 deletion(-)
+
+## remotes
+origin	https://github.com/Klipper3d/klipper.git (fetch)
+origin	https://github.com/Klipper3d/klipper.git (push)

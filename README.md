@@ -3,7 +3,7 @@
 > Modernização completa da impressora 3D QIDI X-Pro utilizando hardware aberto, Klipper e uma arquitetura orientada à confiabilidade, manutenção e documentação.
 
 ![Status](https://img.shields.io/badge/status-Em%20Desenvolvimento-orange)
-![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![Version](https://img.shields.io/badge/version-0.3.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
@@ -96,7 +96,8 @@ Foi desenvolvida uma placa exclusiva para este projeto contendo:
 - três LEDs brancos;
 - resistores de 100 Ω;
 - montagem entre os dois hotends.
-- Alimentada por 5V - PWM
+- Alimentada por 5V - PWM, controlada por `tool_light` (PF8)
+- Iluminação de gabinete separada em `cabin_light` (PA4)
 
 Objetivos:
 
@@ -150,64 +151,74 @@ Integrações futuras:
 
 # Organização da Documentação
 
-Toda a documentação técnica encontra-se na pasta **docs/**.
+Toda a documentação técnica encontra-se em **`01_Docs/`**. Documentos previstos e ainda não
+criados aparecem como pendentes.
 
-| Documento | Conteúdo |
-|------------|----------|
-| 00_Roadmap.md | Planejamento geral do projeto |
-| 01_Introducao.md | Objetivos e filosofia |
-| 02_Plataforma_CB1.md | Sistema operacional e configuração do CB1 |
-| 03_Manta_M8P.md | Configuração da controladora |
-| 04_Backups.md | Histórico dos backups |
-| 05_Instalacao_Klipper.md | Instalação do Klipper |
-| 06_Hardware_QIDI.md | Inventário da impressora |
-| 07_Esquema_Eletrico.md | Esquemas elétricos |
-| 08_Klipper_Configuration.md | Configuração do Klipper |
-| 09_Macros.md | Macros do Klipper |
-| 10_Calibracao.md | Procedimentos de calibração |
-| 11_Problemas_Conhecidos.md | Registro de problemas e soluções |
-| 12_Referencias.md | Datasheets e referências |
+| Documento | Conteúdo | Situação |
+|------------|----------|:--------:|
+| 00_Roadmap.md | Planejamento geral do projeto | ✅ |
+| 01_Introducao.md | Objetivos e filosofia | ✅ |
+| 02_Plataforma_CB1.md | Sistema operacional e configuração do CB1 | ✅ |
+| 03_Klipper_Moonraker_Fluidd.md | Instalação da stack de software | ✅ |
+| 04_Backups.md | Histórico dos backups | ✅ |
+| 05_Metrology_Architecture.md | Arquitetura da extensão de metrologia | ✅ |
+| 03_Manta_M8P.md | Caracterização da controladora | ⏳ |
+| 06_Hardware_QIDI.md | Inventário da impressora | ⏳ |
+| 07_Esquema_Eletrico.md | Esquemas elétricos | ⏳ |
+| 08_Klipper_Configuration.md | Configuração do Klipper | ⏳ |
+| 09_Macros.md | Macros do Klipper | ⏳ |
+| 10_Calibracao.md | Procedimentos de calibração | ⏳ |
+| 11_Problemas_Conhecidos.md | Registro de problemas e soluções | ⏳ |
+| 12_Referencias.md | Datasheets e referências | ⏳ |
+
+A configuração operacional **não** fica em `01_Docs/`: ela é versionada em
+[`03_Klipper_Config/`](03_Klipper_Config/README.md), espelho da CB1.
 
 ---
 
 # Estrutura do Repositório
 
 ```text
-QIDI-X-Pro-Retrofit/
+QIDI-XPRO-Rebuild/
 
-├── README.md
-├── CHANGELOG.md
-├── LICENSE
-├── docs/
-├── firmware/
-├── klipper_config/
-├── cad/
-├── stl/
-├── images/
-└── backups/
+├── 00_Estado_Atual.md      ← estado verificado da máquina
+├── README.md  CHANGELOG.md  releases.md  LICENSE
+├── 01_Docs/                ← documentação técnica
+├── 03_Klipper_Config/      ← configuração ativa (espelho da CB1)
+├── 05_Metrology/           ← extensão de metrologia + proveniência
+├── 06_Firmware/            ← bootloader e binários
+├── 07_Backup/              ← Backup_0 e snapshots de configuração
+├── 08_Fotos/  10_Datasheets/
+├── 11_Config_qidi_xpro/    ← moonraker, nginx, systemd, firmware
+├── 12_BKP_chat/  13_Camera/
+└── 02_Esquemas/  03_CAD/  04_STL/  09_Testes/   (vazias)
 ```
 
 ---
 
 # Situação Atual
 
+**v0.3.0 — Produção validada.** O estado detalhado e verificado está em
+[`00_Estado_Atual.md`](00_Estado_Atual.md).
+
 ## Concluído
 
-- Definição da arquitetura do retrofit.
-- Instalação do Debian 13 Minimal no CB1.
-- Atualização completa do sistema operacional.
-- Validação da comunicação Ethernet.
-- Acesso remoto via SSH.
-- Validação do funcionamento do SPI.
-- Criação do Backup_0.
-
----
+- Arquitetura do retrofit e definição dos componentes.
+- Debian 13 no CB1, rede, SSH e SPI validados.
+- Klipper, Moonraker, Fluidd e Nginx operacionais.
+- Comunicação CB1 ↔ STM32H723; firmware `v0.13.0-701` idêntico ao versionado.
+- Cinco TMC2209 em UART; dois hotends independentes; mesa e ventoinhas.
+- Endstops mecânicos em X/Y/Z, sonda indutiva e `z_offset` calibrado.
+- PID dos dois hotends e da mesa; Input Shaper; `rotation_distance`; offsets T1; PA.
+- Iluminação de ferramenta e de gabinete implementada.
+- Impressão em produção desde outubro de 2026.
+- Configuração real versionada em `03_Klipper_Config/`.
 
 ## Em andamento
 
-- Instalação do ecossistema Klipper.
-- Caracterização completa da Manta M8P.
-- Inventário da QIDI X-Pro.
+- Consistência do bed mesh (limites e aplicação no start G-code).
+- Extensão de metrologia: refatoração interrompida, não carregável.
+- Câmera: aguardando hardware UVC com MJPEG.
 
 ---
 
@@ -238,6 +249,6 @@ Agradecemos às comunidades de software e hardware livre que tornam projetos com
 
 ---
 
-**Versão do documento:** 0.1.0
+**Versão do documento:** 0.3.0
 
-**Última atualização:** 2026-07-06
+**Última atualização:** 2026-10-25

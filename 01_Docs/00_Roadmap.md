@@ -33,31 +33,48 @@ Infraestrutura concluída.
 
 ---
 
-## v0.2.0
+## v0.2.0 ✅
 
-Calibração da impressora.
+Stack Klipper/Moonraker/Fluidd e calibração inicial.
 
-Objetivos:
-
-- Probe Offset
-- Bed Mesh
-- Z Offset
-- Offsets entre hotends
-- Primeiro layer
-- Ajuste fino da extrusão
+- Comunicação CB1 ↔ STM32H723
+- Cinco TMC2209 em UART
+- Dois hotends independentes
+- Input Shaper (ADXL345)
+- PID dos aquecedores
 
 ---
 
-## v0.3.0
+## v0.2.5 ✅
 
-Recursos avançados.
+Geometria e dual nozzle.
 
+- `rotation_distance` calibrado
+- Offsets entre bicos
+- Probe Offset e Z Offset
+- Bed Mesh medido
+
+---
+
+## v0.3.0 ✅
+
+Produção validada — 25/10/2026.
+
+- Configuração real versionada (`03_Klipper_Config/`)
 - Pressure Advance
-- Macros
-- LEDs
-- Filament Runout
-- Timelapse
-- Câmera
+- Macros (`PRINT_START`, `PRINT_END`, `PAUSE`, `RESUME`, `BED_CALIBRATE`)
+- Iluminação de ferramenta e de gabinete
+- Impressão em produção desde outubro
+
+---
+
+## v0.4.0
+
+Geometria reconciliada.
+
+- Mesh coerente com os limites reais e aplicado no início dos trabalhos
+- Extensão de metrologia carregável e versionada
+- Documentação completa em `01_Docs/`
 
 ---
 
@@ -68,16 +85,20 @@ Retrofit totalmente concluído.
 - Documentação completa
 - Hardware validado
 - Impressora pronta para produção
+
 ---
 
 # Calibração mecânica
 
+Concluído:
+
+- Nivelamento manual em 3 pontos (`BED_CALIBRATE`).
+- Z offset da sonda (0,652 mm).
+- Mesh bed leveling medido (9×7).
+
 Pendente:
 
-- Nivelamento da mesa.
-- Z offset.
-- Mesh bed leveling.
-- Ajuste dos eixos.
+- Reconciliar `mesh_max` com `position_max` e aplicar o perfil no start G-code.
 
 ---
 
@@ -85,11 +106,11 @@ Pendente:
 
 Pendente:
 
-- Câmera.
-- Macros Klipper.
+- Câmera (aguardando hardware UVC com MJPEG).
+- Filament runout.
+- Timelapse.
 - Backup automático.
-- Documentação final.
-- Perfil de impressão.
+- Perfil de impressão documentado.
 
 ---
 

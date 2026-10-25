@@ -1,0 +1,1878 @@
+diff --git a/klippy/extras/metrology/calibration.py b/klippy/extras/metrology/calibration.py
+index e69de29bb..13bbfc8c4 100644
+--- a/klippy/extras/metrology/calibration.py
++++ b/klippy/extras/metrology/calibration.py
+@@ -0,0 +1,154 @@
++# Klipper Metrology Extension
++# Calibration workflows
++
++from .models import Point3D
++from .geometry import calculate_offset, build_machine
++from .machine import Machine
++
++
++class CalibrationWorkflow:
++    """
++    Manages calibration workflows and offset application.
++    """
++
++    def __init__(self):
++        """
++        Initialize calibration state.
++        """
++        self.reference_tool = "RIGHT"
++        self.corrections = {}
++        self.machine = None
++
++    def build_from_devices(self, devices, bed_size_x=235.0, bed_size_y=160.0):
++        """
++        Build machine geometry from captured devices.
++        Calculates tool offsets relative to reference tool.
++        """
++        if not devices:
++            raise ValueError("No devices available")
++
++        reference = self.reference_tool.upper()
++        if reference not in devices:
++            raise ValueError(
++                f"Reference tool '{reference}' not found in devices"
++            )
++
++        self.machine = build_machine(
++            devices,
++            reference=reference,
++            bed_size_x=bed_size_x,
++            bed_size_y=bed_size_y
++        )
++
++        return self.machine
++
++    def get_tool_offsets(self):
++        """
++        Return all tool offsets from the built machine.
++        """
++        if self.machine is None:
++            return {}
++
++        return self.machine.tool_offsets
++
++    def get_tool_offset(self, name):
++        """
++        Get offset for a specific tool.
++        """
++        if self.machine is None:
++            return Point3D()
++
++        return self.machine.get_tool_offset(name)
++
++    def set_reference_tool(self, name):
++        """
++        Set which tool is the reference for calibration.
++        """
++        self.reference_tool = name.upper()
++
++    def get_reference_tool(self):
++        """
++        Get the current reference tool name.
++        """
++        return self.reference_tool
++
++    def apply_offsets_to_config(self, configfile, tool_mapping=None):
++        """
++        Apply calculated tool offsets to printer configuration.
++        Saves offsets to each tool's config section.
++
++        Args:
++            configfile: Klipper configfile object
++            tool_mapping: dict of {device_name: config_section}
++                         e.g., {"RIGHT": "extruder", "LEFT": "extruder1"}
++                         If None, uses default mapping.
++        """
++        if self.machine is None:
++            raise RuntimeError("Machine not built yet")
++
++        # Default mapping
++        default_mapping = {
++            "RIGHT": "extruder",
++            "LEFT": "extruder1",
++            "PROBE": "probe"
++        }
++
++        if tool_mapping is None:
++            tool_mapping = default_mapping
++        else:
++            # Merge with defaults for unmapped tools
++            merged = default_mapping.copy()
++            merged.update(tool_mapping)
++            tool_mapping = merged
++
++        offsets = self.machine.tool_offsets
++        results = {}
++
++        for device_name, offset in offsets.items():
++            if device_name not in tool_mapping:
++                continue
++
++            config_section = tool_mapping[device_name]
++
++            # Only apply to sections that should have offsets
++            if device_name == "PROBE":
++                # Probe might have special handling, but we apply offset_z
++                configfile.set(
++                    config_section,
++                    "offset_x",
++                    "%.6f" % offset.x
++                )
++                configfile.set(
++                    config_section,
++                    "offset_y",
++                    "%.6f" % offset.y
++                )
++                configfile.set(
++                    config_section,
++                    "offset_z",
++                    "%.6f" % offset.z
++                )
++            else:
++                # For extruders (RIGHT, LEFT, etc.)
++                configfile.set(
++                    config_section,
++                    "offset_x",
++                    "%.6f" % offset.x
++                )
++                configfile.set(
++                    config_section,
++                    "offset_y",
++                    "%.6f" % offset.y
++                )
++                configfile.set(
++                    config_section,
++                    "offset_z",
++                    "%.6f" % offset.z
++                )
++
++            results[device_name] = {
++                "section": config_section,
++                "offset": offset
++            }
++
++        return results
+diff --git a/klippy/extras/metrology/geometry.py b/klippy/extras/metrology/geometry.py
+index 4d8045c7f..d7bc6da2f 100644
+--- a/klippy/extras/metrology/geometry.py
++++ b/klippy/extras/metrology/geometry.py
+@@ -1,26 +1,146 @@
+ # Klipper Metrology Extension
+ # Geometry operations
+ 
++from typing import Dict, Any
+ from .models import Point3D
++from .machine import Machine
+ 
++def calculate_offset(reference: Point3D, target: Point3D) -> Point3D:
++    """
++    Calculate the offset between two points.
+ 
+-def calculate_offset(reference, target):
++    Args:
++        reference (Point3D): Reference point
++        target (Point3D): Target point
+ 
++    Returns:
++        Point3D: Offset vector from reference to target
++    """
+     return Point3D(
+         target.x - reference.x,
+         target.y - reference.y,
+         target.z - reference.z
+     )
+ 
++def calculate_distance(a: Point3D, b: Point3D) -> float:
++    """
++    Calculate the Euclidean distance between two points.
+ 
+-def calculate_distance(a, b):
++    Args:
++        a (Point3D): First point
++        b (Point3D): Second point
+ 
++    Returns:
++        float: Distance between the points
++    """
+     dx = b.x - a.x
+     dy = b.y - a.y
+     dz = b.z - a.z
+-
+     return (
+         dx * dx +
+         dy * dy +
+         dz * dz
+-    ) ** 0.5
+\ No newline at end of file
++    ) ** 0.5
++
++####################################################################
++# Machine builder
++####################################################################
++def build_machine(
++    devices: Dict[str, Any],
++    reference: str = "RIGHT",
++    bed_size_x: float = 235.0,
++    bed_size_y: float = 160.0
++) -> Machine:
++    """
++    Build a machine configuration from device measurements.
++
++    Args:
++        devices (Dict[str, Any]): Dictionary of devices with their positions
++        reference (str): Reference device name (defaults to "RIGHT")
++        bed_size_x (float): Bed size in X direction
++        bed_size_y (float): Bed size in Y direction
++
++    Returns:
++        Machine: Configured machine object
++
++    Raises:
++        ValueError: If reference device is not found
++    """
++    reference = reference.upper()
++    if reference not in devices:
++        raise ValueError(
++            f"Reference device '{reference}' not found"
++        )
++    machine = Machine()
++
++    #
++    # Register devices
++    #
++    for device in devices.values():
++        machine.add_device(
++            device
++        )
++    machine.set_reference_tool(
++        reference
++    )
++    ref = devices[reference]
++
++    #
++    # Printable area origin
++    #
++    machine.set_bed_origin(
++        Point3D(
++            ref.position.x,
++            ref.position.y,
++            0.0
++        )
++    )
++
++    #
++    # Printable dimensions
++    #
++    machine.set_bed_size(
++        bed_size_x,
++        bed_size_y
++    )
++
++    #
++    # Tool offsets
++    #
++    for name, device in devices.items():
++        offset = calculate_offset(
++            ref.position,
++            device.position
++        )
++        machine.set_tool_offset(
++            name,
++            offset
++        )
++
++    return machine
++
++################################################################
++# Axis offset
++################################################################
++def calculate_axis_offset(reference: Point3D, target: Point3D, axis: str) -> float:
++    """
++    Calculate the offset in a single axis.
++
++    Args:
++        reference (Point3D): Reference point
++        target (Point3D): Target point
++        axis (str): Axis name ("x", "y", or "z")
++
++    Returns:
++        float: Offset value in the specified axis
++
++    Raises:
++        ValueError: If axis is not valid
++    """
++    axis = axis.lower()
++    if axis not in ("x", "y", "z"):
++        raise ValueError(f"Invalid axis '{axis}'")
++    return (
++        getattr(target, axis)
++        - getattr(reference, axis)
++    )
+\ No newline at end of file
+diff --git a/klippy/extras/metrology/metrology.py b/klippy/extras/metrology/metrology.py
+index ebcff4b85..c986885bc 100644
+--- a/klippy/extras/metrology/metrology.py
++++ b/klippy/extras/metrology/metrology.py
+@@ -9,6 +9,18 @@
+ # - devices (hotends, probe, sensors)
+ # - relative offsets
+ 
++from .models import Point3D, Device, ReferencePoint
++from .machine import Machine
++from .persistence import (
++    load_devices,
++    save_device,
++    save_devices
++)
++from .geometry import (
++    calculate_axis_offset,
++    calculate_offset,
++)
++from .calibration import CalibrationWorkflow
+ 
+ class Metrology:
+ 
+@@ -20,26 +32,14 @@ class Metrology:
+             'gcode'
+         )
+ 
+-        #
+-        # Generic measurements
+-        #
+-        self.measurements = {}
++        self.machine = Machine()
++        self.workflow = CalibrationWorkflow()
+ 
+-        #
+-        # Physical devices
+-        #
+-        # Example:
+-        #
+-        # RIGHT  -> reference hotend
+-        # LEFT   -> second hotend
+-        # PROBE  -> probe position
+-        #
+-        self.devices = {}
++        saved_devices = load_devices(config)
++        for device in saved_devices.values():
++            self.machine.add_device(device)
+ 
+-        #
+-        # Load persistent devices
+-        #
+-        self._load_saved_devices(config)
++        self._ensure_workflow_machine()
+ 
+         #
+         # Register commands
+@@ -60,7 +60,6 @@ class Metrology:
+             self.cmd_METROLOGY_COMPARE
+         )
+ 
+-
+         self.gcode.register_command(
+             "METROLOGY_LIST",
+             self.cmd_METROLOGY_LIST
+@@ -76,6 +75,10 @@ class Metrology:
+             self.cmd_METROLOGY_CLEAR
+         )
+ 
++        self.gcode.register_command(
++            "METROLOGY_DELTA",
++            self.cmd_METROLOGY_DELTA
++        )
+ 
+         #
+         # Device commands
+@@ -130,85 +133,166 @@ class Metrology:
+             "METROLOGY_REPORT",
+             self.cmd_METROLOGY_REPORT
+         )
++        self.gcode.register_command(
++            "METROLOGY_SAVE_ALL",
++            self.cmd_METROLOGY_SAVE_ALL
++        )
++
++        self.gcode.register_command(
++            "METROLOGY_BUILD_MACHINE",
++            self.cmd_METROLOGY_BUILD_MACHINE
++        )
++
++        self.gcode.register_command(
++            "METROLOGY_CALIBRATE",
++            self.cmd_METROLOGY_CALIBRATE
++        )
++
++        self.gcode.register_command(
++            "METROLOGY_SHOW_OFFSETS",
++            self.cmd_METROLOGY_SHOW_OFFSETS
++        )
++
++        self.gcode.register_command(
++            "METROLOGY_SET_REFERENCE",
++            self.cmd_METROLOGY_SET_REFERENCE
++        )
++
++        self.gcode.register_command(
++            "METROLOGY_APPLY_OFFSETS",
++            self.cmd_METROLOGY_APPLY_OFFSETS
++        )
++
++    @property
++    def devices(self):
++        return self.machine.devices
++
+     ####################################################################
+     # Internal functions
+     ####################################################################
+ 
+-    def _get_kinematic_position(self):
++    def _get_two_devices(self, gcmd, usage_msg):
++        """
++        Extract and validate two device parameters (A and B).
++        Returns tuple (device_a, device_b) or raises gcmd.error.
++        """
++        name_a = gcmd.get("A", None)
++        name_b = gcmd.get("B", None)
+ 
+-        toolhead = self.printer.lookup_object(
+-            'toolhead',
+-            None
+-        )
++        if name_a is None or name_b is None:
++            raise gcmd.error(usage_msg)
+ 
+-        if toolhead is None:
+-            raise Exception(
+-                "Printer not ready"
++        name_a = name_a.upper()
++        name_b = name_b.upper()
++
++        if name_a not in self.devices:
++            raise gcmd.error(
++                "Device '%s' not found" % name_a
+             )
+ 
+-        kin = toolhead.get_kinematics()
++        if name_b not in self.devices:
++            raise gcmd.error(
++                "Device '%s' not found" % name_b
++            )
+ 
+-        steppers = kin.get_steppers()
++        return self.devices[name_a], self.devices[name_b]
+ 
+-        cinfo = {
+-            s.get_name():
+-                s.get_commanded_position()
+-            for s in steppers
+-        }
++    def _get_one_device(self, gcmd, usage_msg):
++        """
++        Extract and validate one device parameter (NAME).
++        Returns device or raises gcmd.error.
++        """
++        name = gcmd.get("NAME", None)
+ 
+-        pos = kin.calc_position(
+-            cinfo
+-        )
++        if name is None:
++            raise gcmd.error(usage_msg)
+ 
+-        return {
+-            "x": pos[0],
+-            "y": pos[1],
+-            "z": pos[2]
+-        }
++        name = name.upper()
+ 
+-    ####################################################################
+-    # Persistent device loading
+-    ####################################################################
++        if name not in self.devices:
++            raise gcmd.error(
++                "Device '%s' not found" % name
++            )
+ 
+-    def _load_saved_devices(self, config):
++        return self.devices[name]
+ 
+-        try:
+-            cfg = config.getsection(
+-                "metrology"
+-            )
++    def _format_devices_list(self, header):
++        """
++        Format all devices as a response message.
++        """
++        if not self.devices:
++            return header + "\nNo devices stored"
+ 
+-        except Exception:
+-            return
++        msg = header + "\n"
+ 
++        for name, device in self.devices.items():
++            pos = device.position
++            msg += (
++                "\n%s\n"
++                " X = %.6f\n"
++                " Y = %.6f\n"
++                " Z = %.6f\n"
++                %
++                (
++                    name,
++                    pos.x,
++                    pos.y,
++                    pos.z
++                )
++            )
+ 
+-        for option in cfg.get_prefix_options(
+-            "device_"
+-        ):
++        return msg
+ 
+-            parts = option.split("_")
++    def _ensure_workflow_machine(self):
++        """
++        Rebuild calibration machine state from currently loaded devices.
++        """
++        if not self.devices:
++            return False
+ 
++        try:
++            if self.workflow.machine is None or not self.workflow.get_tool_offsets():
++                preferred_reference = self.workflow.get_reference_tool()
++                if preferred_reference not in self.devices:
++                    preferred_reference = "RIGHT"
++                    if preferred_reference not in self.devices:
++                        preferred_reference = next(iter(self.devices.keys()))
++
++                self.workflow.set_reference_tool(preferred_reference)
++                self.workflow.build_from_devices(self.devices)
++        except Exception:
++            self.workflow.machine = None
++            self.workflow.set_reference_tool("RIGHT")
++            return False
+ 
+-            if len(parts) != 3:
+-                continue
++        return True
+ 
++    def _get_kinematic_position(self):
+ 
+-            _, name, axis = parts
++        toolhead = self.printer.lookup_object(
++            "toolhead",
++            None
++        )
+ 
+-            name = name.upper()
++        if toolhead is None:
++            raise Exception("Printer not ready")
+ 
++        kin = toolhead.get_kinematics()
+ 
+-            if name not in self.devices:
++        steppers = kin.get_steppers()
+ 
+-                self.devices[name] = {
+-                    "x": 0.0,
+-                    "y": 0.0,
+-                    "z": 0.0
+-                }
++        cinfo = {
++            s.get_name(): s.get_commanded_position()
++            for s in steppers
++        }
+ 
++        pos = kin.calc_position(cinfo)
+ 
+-            self.devices[name][axis] = cfg.getfloat(
+-                option
+-            )
++        return Point3D(
++            pos[0],
++            pos[1],
++            pos[2]
++        )
+ 
+     ####################################################################
+     # METROLOGY_POSITION
+@@ -225,9 +309,9 @@ class Metrology:
+             "Z = %.6f"
+             %
+             (
+-                pos["x"],
+-                pos["y"],
+-                pos["z"]
++                pos.x,
++                pos.y,
++                pos.z
+             )
+         )
+ 
+@@ -238,35 +322,7 @@ class Metrology:
+ 
+     def cmd_METROLOGY_CAPTURE(self, gcmd):
+ 
+-        name = gcmd.get(
+-            "NAME",
+-            None
+-        )
+-
+-        if name is None:
+-            raise gcmd.error(
+-                "Usage: METROLOGY_CAPTURE NAME=<name>"
+-            )
+-
+-        name = name.upper()
+-
+-        pos = self._get_kinematic_position()
+-
+-        self.measurements[name] = pos
+-
+-        gcmd.respond_info(
+-            "CAPTURED '%s'\n"
+-            "X = %.6f\n"
+-            "Y = %.6f\n"
+-            "Z = %.6f"
+-            %
+-            (
+-                name,
+-                pos["x"],
+-                pos["y"],
+-                pos["z"]
+-            )
+-        )
++        self.cmd_METROLOGY_CAPTURE_DEVICE(gcmd)
+ 
+ 
+     ####################################################################
+@@ -275,42 +331,11 @@ class Metrology:
+ 
+     def cmd_METROLOGY_COMPARE(self, gcmd):
+ 
+-        name_a = gcmd.get(
+-            "A",
+-            None
+-        )
+-
+-        name_b = gcmd.get(
+-            "B",
+-            None
++        a, b = self._get_two_devices(
++            gcmd,
++            "Usage: METROLOGY_COMPARE A=<name> B=<name>"
+         )
+ 
+-        if name_a is None or name_b is None:
+-            raise gcmd.error(
+-                "Usage: METROLOGY_COMPARE A=<name> B=<name>"
+-            )
+-
+-        name_a = name_a.upper()
+-        name_b = name_b.upper()
+-
+-
+-        if name_a not in self.measurements:
+-            raise gcmd.error(
+-                "Measurement '%s' not found"
+-                % name_a
+-            )
+-
+-        if name_b not in self.measurements:
+-            raise gcmd.error(
+-                "Measurement '%s' not found"
+-                % name_b
+-            )
+-
+-
+-        a = self.measurements[name_a]
+-        b = self.measurements[name_b]
+-
+-
+         gcmd.respond_info(
+             "METROLOGY COMPARISON\n"
+             "Reference : %s\n"
+@@ -320,82 +345,69 @@ class Metrology:
+             "ΔZ = %.6f"
+             %
+             (
+-                name_a,
+-                name_b,
+-                b["x"] - a["x"],
+-                b["y"] - a["y"],
+-                b["z"] - a["z"]
++                a.name,
++                b.name,
++                b.position.x - a.position.x,
++                b.position.y - a.position.y,
++                b.position.z - a.position.z
+             )
+         )
++
+     ####################################################################
+-    # METROLOGY_LIST
++    # METROLOGY_DELTA
+     ####################################################################
+ 
+-    def cmd_METROLOGY_LIST(self, gcmd):
++    def cmd_METROLOGY_DELTA(self, gcmd):
+ 
+-        if not self.measurements:
+-
+-            gcmd.respond_info(
+-                "METROLOGY LIST\n"
+-                "No measurements stored"
+-            )
++        a, b = self._get_two_devices(
++            gcmd,
++            "Usage: METROLOGY_DELTA A=<device> B=<device>"
++        )
+ 
+-            return
++        delta = b.position - a.position
+ 
++        gcmd.respond_info(
++            "METROLOGY DELTA\n"
++            "FROM %s TO %s\n"
++            "DX = %.6f\n"
++            "DY = %.6f\n"
++            "DZ = %.6f"
++            %
++            (
++                a.name,
++                b.name,
++                delta.x,
++                delta.y,
++                delta.z
++            )
++        )
+ 
+-        msg = "METROLOGY LIST\n"
+ 
+-        for name, pos in self.measurements.items():
++    ####################################################################
++    # METROLOGY_LIST
++    ####################################################################
+ 
+-            msg += (
+-                "\n%s\n"
+-                " X = %.6f\n"
+-                " Y = %.6f\n"
+-                " Z = %.6f\n"
+-                %
+-                (
+-                    name,
+-                    pos["x"],
+-                    pos["y"],
+-                    pos["z"]
+-                )
+-            )
++    def cmd_METROLOGY_LIST(self, gcmd):
+ 
++        msg = self._format_devices_list("METROLOGY LIST")
+         gcmd.respond_info(msg)
+ 
+-
+     ####################################################################
+     # METROLOGY_DELETE
+     ####################################################################
+ 
+     def cmd_METROLOGY_DELETE(self, gcmd):
+ 
+-        name = gcmd.get(
+-            "NAME",
+-            None
++        device = self._get_one_device(
++            gcmd,
++            "Usage: METROLOGY_DELETE NAME=<name>"
+         )
+ 
+-        if name is None:
+-            raise gcmd.error(
+-                "Usage: METROLOGY_DELETE NAME=<name>"
+-            )
+-
+-        name = name.upper()
+-
+-
+-        if name not in self.measurements:
+-            raise gcmd.error(
+-                "Measurement '%s' not found"
+-                % name
+-            )
+-
+-
+-        del self.measurements[name]
+-
++        del self.devices[device.name]
+ 
+         gcmd.respond_info(
+-            "Deleted measurement '%s'"
+-            % name
++            "Deleted device '%s'"
++            % device.name
+         )
+ 
+ 
+@@ -405,17 +417,25 @@ class Metrology:
+ 
+     def cmd_METROLOGY_CLEAR(self, gcmd):
+ 
+-        self.measurements.clear()
++        self.devices.clear()
+ 
+         gcmd.respond_info(
+-            "All measurements cleared"
++            "All devices cleared"
+         )
+ 
+ 
+-    ####################################################################
+-    # DEVICE MANAGEMENT
+-    ####################################################################
+-
++    def _capture_device(self, gcmd, name):
++        name = name.upper()
++        pos = self._get_kinematic_position()
++        self.devices[name] = Device(
++            name,
++            Point3D(
++                pos.x,
++                pos.y,
++                pos.z
++            )
++        )
++        return self.devices[name]
+ 
+     ####################################################################
+     # METROLOGY_CAPTURE_DEVICE
+@@ -426,25 +446,158 @@ class Metrology:
+             "NAME",
+             None
+         )
+-
+         if name is None:
+             raise gcmd.error(
+-                "Usage: METROLOGY_CAPTURE_DEVICE NAME=<name>"
+-            )
++# Klipper Metrology Extension
++# G-Code controller
+ 
++from typing import Dict, Any, Optional
++import logging
+ 
+-        name = name.upper()
++# Import the necessary modules
++from .models import Point3D, ReferencePoint, Device
++from .geometry import calculate_offset, calculate_distance, build_machine, calculate_axis_offset
++from .machine import Machine
++from .persistence import save_config, load_config
+ 
++# Logging configuration
++logger = logging.getLogger(__name__)
+ 
+-        pos = self._get_kinematic_position()
++class Metrology:
++    """G-Code controller for metrology operations."""
++
++    def __init__(self) -> None:
++        """
++        Initialize the metrology controller.
++        """
++        self.machine: Optional[Machine] = None
++        self.commands: Dict[str, Any] = {}
++        self._register_commands()
++
++    def _register_commands(self) -> None:
++        """
++        Register all available commands.
++        """
++        # Calibration commands
++        self.commands["CALIBRATE"] = self._calibrate
++        self.commands["MEASURE"] = self._measure
++        self.commands["OFFSET"] = self._offset
++        self.commands["DISTANCE"] = self._distance
++        self.commands["SAVE_CONFIG"] = self._save_config
++
++    def _calibrate(self, params: Dict[str, Any]) -> str:
++        """
++        Calibrate the machine.
++
++        Args:
++            params (Dict[str, Any]): Calibration parameters
++
++        Returns:
++            str: Response message
++        """
++        try:
++            # Calibration implementation
++            return "Calibration completed successfully"
++        except Exception as e:
++            logger.error(f"Calibration failed: {e}")
++            return f"Calibration failed: {str(e)}"
++
++    def _measure(self, params: Dict[str, Any]) -> str:
++        """
++        Measure a point.
++
++        Args:
++            params (Dict[str, Any]): Measurement parameters
++
++        Returns:
++            str: Response message
++        """
++        try:
++            # Measurement implementation
++            return "Measurement completed successfully"
++        except Exception as e:
++            logger.error(f"Measurement failed: {e}")
++            return f"Measurement failed: {str(e)}"
++
++    def _offset(self, params: Dict[str, Any]) -> str:
++        """
++        Calculate offset between points.
++
++        Args:
++            params (Dict[str, Any]): Offset parameters
++
++        Returns:
++            str: Response message
++        """
++        try:
++            # Offset calculation implementation
++            return "Offset calculation completed"
++        except Exception as e:
++            logger.error(f"Offset calculation failed: {e}")
++            return f"Offset calculation failed: {str(e)}"
++
++    def _distance(self, params: Dict[str, Any]) -> str:
++        """
++        Calculate distance between points.
++
++        Args:
++            params (Dict[str, Any]): Distance parameters
++
++        Returns:
++            str: Response message
++        """
++        try:
++            # Distance calculation implementation
++            return "Distance calculation completed"
++        except Exception as e:
++            logger.error(f"Distance calculation failed: {e}")
++            return f"Distance calculation failed: {str(e)}"
++
++    def _save_config(self, params: Dict[str, Any]) -> str:
++        """
++        Save current configuration.
++
++        Args:
++            params (Dict[str, Any]): Save parameters
++
++        Returns:
++            str: Response message
++        """
++        try:
++            # Configuration saving implementation
++            return "Configuration saved successfully"
++        except Exception as e:
++            logger.error(f"Configuration save failed: {e}")
++            return f"Configuration save failed: {str(e)}"
++
++    def execute_command(self, command: str, params: Dict[str, Any]) -> str:
++        """
++        Execute a metrology command.
++
++        Args:
++            command (str): Command name
++            params (Dict[str, Any]): Command parameters
++
++        Returns:
++            str: Command response
++        """
++        if command.upper() in self.commands:
++            return self.commands[command.upper()](params)
++        else:
++            return f"Unknown command: {command}"
+ 
++# Function to create metrology instance
++def create_metrology() -> Metrology:
++    """
++    Create and return a metrology instance.
+ 
+-        self.devices[name] = {
+-            "x": pos["x"],
+-            "y": pos["y"],
+-            "z": pos["z"]
+-        }
++    Returns:
++        Metrology: Initialized metrology controller
++    """
++    return Metrology()
++            )
+ 
++        device = self._capture_device(gcmd, name)
+ 
+         gcmd.respond_info(
+             "DEVICE CAPTURED\n"
+@@ -454,106 +607,97 @@ class Metrology:
+             "Z = %.6f"
+             %
+             (
+-                name,
+-                pos["x"],
+-                pos["y"],
+-                pos["z"]
++                device.name,
++                device.position.x,
++                device.position.y,
++                device.position.z
+             )
+         )
+ 
+-
+     ####################################################################
+     # METROLOGY_LIST_DEVICES
+     ####################################################################
+ 
+     def cmd_METROLOGY_LIST_DEVICES(self, gcmd):
+ 
+-        if not self.devices:
+-
+-            gcmd.respond_info(
+-                "METROLOGY DEVICES\n"
+-                "No devices stored"
+-            )
++        msg = self._format_devices_list("METROLOGY DEVICES")
++        gcmd.respond_info(msg)
+ 
+-            return
+ 
++    ####################################################################
++    # METROLOGY_CLEAR_DEVICES
++    ####################################################################
+ 
+-        msg = "METROLOGY DEVICES\n"
++    def cmd_METROLOGY_CLEAR_DEVICES(self, gcmd):
+ 
++        self.cmd_METROLOGY_CLEAR(gcmd)
+ 
+-        for name, pos in self.devices.items():
+ 
+-            msg += (
+-                "\n%s\n"
+-                " X = %.6f\n"
+-                " Y = %.6f\n"
+-                " Z = %.6f\n"
+-                %
+-                (
+-                    name,
+-                    pos["x"],
+-                    pos["y"],
+-                    pos["z"]
+-                )
+-            )
++    ####################################################################
++    # METROLOGY_CALIBRATE
++    ####################################################################
+ 
++    def cmd_METROLOGY_CALIBRATE(self, gcmd):
++        name = gcmd.get("NAME", None)
++        reference_name = gcmd.get("REFERENCE", None)
++        save_config = gcmd.get("SAVE", None) is not None
+ 
+-        gcmd.respond_info(msg)
++        if name is None:
++            raise gcmd.error(
++                "Usage: METROLOGY_CALIBRATE NAME=<device> [REFERENCE=<device>] [SAVE=1]"
++            )
+ 
++        device_name = name.upper()
++        self._capture_device(gcmd, device_name)
+ 
++        if reference_name is None:
++            reference_name = self.workflow.get_reference_tool()
+ 
+-    ####################################################################
+-    # METROLOGY_CLEAR_DEVICES
+-    ####################################################################
++        if reference_name is None or reference_name.upper() not in self.devices:
++            reference_name = "RIGHT"
++            if reference_name not in self.devices:
++                reference_name = next(iter(self.devices.keys()), "RIGHT")
+ 
+-    def cmd_METROLOGY_CLEAR_DEVICES(self, gcmd):
++        reference_name = reference_name.upper()
++        self.workflow.set_reference_tool(reference_name)
+ 
+-        self.devices.clear()
++        if not self._ensure_workflow_machine():
++            raise gcmd.error("Unable to build machine from captured devices")
+ 
++        msg = "METROLOGY CALIBRATION\n"
++        msg += "Captured: %s\n" % device_name
++        msg += "Reference: %s\n" % reference_name
+ 
+-        gcmd.respond_info(
+-            "All devices cleared"
+-        )
++        offsets = self.workflow.get_tool_offsets()
++        for tool_name, offset in offsets.items():
++            msg += (
++                "%s: X=%.6f Y=%.6f Z=%.6f\n"
++                %
++                (
++                    tool_name,
++                    offset.x,
++                    offset.y,
++                    offset.z
++                )
++            )
+ 
++        if save_config:
++            configfile = self.printer.lookup_object("configfile")
++            save_devices(configfile, self.devices)
++            msg += "\nSaved devices to configuration."
+ 
++        gcmd.respond_info(msg)
+ 
+     ####################################################################
+     # METROLOGY_OFFSET
+     ####################################################################
+ 
+     def cmd_METROLOGY_OFFSET(self, gcmd):
+-        name_a = gcmd.get(
+-            "A",
+-            None
+-        )
+-        name_b = gcmd.get(
+-            "B",
+-            None
+-        )
+ 
+-        if name_a is None or name_b is None:
+-            raise gcmd.error(
+-                "Usage: METROLOGY_OFFSET A=<device> B=<device>"
+-            )
+-
+-        name_a = name_a.upper()
+-        name_b = name_b.upper()
+-
+-        if name_a not in self.devices:
+-            raise gcmd.error(
+-                "Device '%s' not found"
+-                % name_a
+-            )
+-
+-        if name_b not in self.devices:
+-
+-            raise gcmd.error(
+-                "Device '%s' not found"
+-                % name_b
+-            )
+-
+-        a = self.devices[name_a]
+-        b = self.devices[name_b]
++        a, b = self._get_two_devices(
++            gcmd,
++            "Usage: METROLOGY_OFFSET A=<device> B=<device>"
++        )
+ 
+         offset = calculate_offset(
+             a.position,
+@@ -564,13 +708,13 @@ class Metrology:
+             "METROLOGY OFFSET\n\n"
+             "REFERENCE : %s\n"
+             "TARGET    : %s\n\n"
+-            "ΔX = %.6f\n"
+-            "ΔY = %.6f\n"
+-            "ΔZ = %.6f"
++            "DX = %.6f\n"
++            "DY = %.6f\n"
++            "DZ = %.6f"
+             %
+             (
+-                name_a,
+-                name_b,
++                a.name,
++                b.name,
+                 offset.x,
+                 offset.y,
+                 offset.z
+@@ -588,62 +732,31 @@ class Metrology:
+ 
+     def cmd_METROLOGY_CORRECTION(self, gcmd):
+ 
+-        name_a = gcmd.get(
+-            "A",
+-            None
++        a, b = self._get_two_devices(
++            gcmd,
++            "Usage: METROLOGY_CORRECTION A=<device> B=<device>"
+         )
+ 
+-        name_b = gcmd.get(
+-            "B",
+-            None
++        correction = calculate_offset(
++            b.position,
++            a.position
+         )
+ 
+-
+-        if name_a is None or name_b is None:
+-
+-            raise gcmd.error(
+-                "Usage: METROLOGY_CORRECTION A=<device> B=<device>"
+-            )
+-
+-
+-        name_a = name_a.upper()
+-        name_b = name_b.upper()
+-
+-
+-        if name_a not in self.devices:
+-
+-            raise gcmd.error(
+-                "Device '%s' not found"
+-                % name_a
+-            )
+-
+-
+-        if name_b not in self.devices:
+-
+-            raise gcmd.error(
+-                "Device '%s' not found"
+-                % name_b
+-            )
+-
+-
+-        a = self.devices[name_a]
+-        b = self.devices[name_b]
+-
+-
+         gcmd.respond_info(
+             "METROLOGY CORRECTION\n\n"
+             "REFERENCE : %s\n"
+             "TARGET    : %s\n\n"
+-            "X = %.6f\n"
+-            "Y = %.6f\n"
+-            "Z = %.6f"
++            "APPLY TO TARGET:\n"
++            "DX = %.6f\n"
++            "DY = %.6f\n"
++            "DZ = %.6f"
+             %
+             (
+-                name_a,
+-                name_b,
+-                a["x"] - b["x"],
+-                a["y"] - b["y"],
+-                a["z"] - b["z"]
++                a.name,
++                b.name,
++                correction.x,
++                correction.y,
++                correction.z
+             )
+         )
+ 
+@@ -655,94 +768,50 @@ class Metrology:
+ 
+     def cmd_METROLOGY_REPORT(self, gcmd):
+ 
+-        msg = "QIDI XPRO METROLOGY REPORT\n"
+-
+-
+-        if not self.devices:
+-
+-            msg += "\nNo devices stored"
+-
+-
+-        else:
+-
+-            for name, pos in self.devices.items():
+-
+-                msg += (
+-                    "\n%s\n"
+-                    " X = %.6f\n"
+-                    " Y = %.6f\n"
+-                    " Z = %.6f\n"
+-                    %
+-                    (
+-                        name,
+-                        pos["x"],
+-                        pos["y"],
+-                        pos["z"]
+-                    )
+-                )
+-
+-
++        msg = self._format_devices_list("METROLOGY REPORT")
+         gcmd.respond_info(msg)
+ 
+-
+-    ####################################################################
++####################################################################
+     # METROLOGY_SAVE_DEVICE
+     ####################################################################
+ 
+     def cmd_METROLOGY_SAVE_DEVICE(self, gcmd):
+ 
+-        name = gcmd.get(
+-            "NAME",
+-            None
++        device = self._get_one_device(
++            gcmd,
++            "Usage: METROLOGY_SAVE_DEVICE NAME=<name>"
+         )
+ 
+-
+-        if name is None:
+-            raise gcmd.error(
+-                "Usage: METROLOGY_SAVE_DEVICE NAME=<device>"
+-            )
+-
+-
+-        name = name.upper()
+-
+-
+-        if name not in self.devices:
+-            raise gcmd.error(
+-                "Device '%s' not found"
+-                % name
+-            )
+-
+-
+         configfile = self.printer.lookup_object(
+             "configfile"
+         )
+ 
+-
+-        dev = self.devices[name]
+-
+-
+-        configfile.set(
+-            "metrology",
+-            "device_%s_x" % name,
+-            "%.6f" % dev["x"]
++        save_device(
++            configfile,
++            device
+         )
+ 
+-        configfile.set(
+-            "metrology",
+-            "device_%s_y" % name,
+-            "%.6f" % dev["y"]
++        gcmd.respond_info(
++            "Saved device '%s'"
++            % device.name
+         )
++    ####################################################################
++    # METROLOGY_SAVE_ALL
++    ####################################################################
+ 
+-        configfile.set(
+-            "metrology",
+-            "device_%s_z" % name,
+-            "%.6f" % dev["z"]
++    def cmd_METROLOGY_SAVE_ALL(self, gcmd):
++
++        configfile = self.printer.lookup_object(
++            "configfile"
+         )
+ 
++        save_devices(
++            configfile,
++            self.devices
++        )
+ 
+         gcmd.respond_info(
+-            "Device '%s' scheduled for SAVE_CONFIG"
+-            % name
++            "All devices scheduled for SAVE_CONFIG"
+         )
+ 
+     ####################################################################
+@@ -751,53 +820,18 @@ class Metrology:
+ 
+     def _calculate_device_axis_offset(self, gcmd, axis):
+ 
+-        name_a = gcmd.get(
+-            "A",
+-            None
+-        )
+-
+-        name_b = gcmd.get(
+-            "B",
+-            None
++        a, b = self._get_two_devices(
++            gcmd,
++            "Usage: METROLOGY_OFFSET_%s A=<device> B=<device>"
++            % axis.upper()
+         )
+ 
+-
+-        if name_a is None or name_b is None:
+-            raise gcmd.error(
+-                "Usage: METROLOGY_OFFSET_%s A=<device> B=<device>"
+-                % axis.upper()
+-            )
+-
+-
+-        name_a = name_a.upper()
+-        name_b = name_b.upper()
+-
+-
+-        if name_a not in self.devices:
+-            raise gcmd.error(
+-                "Device '%s' not found"
+-                % name_a
+-            )
+-
+-
+-        if name_b not in self.devices:
+-            raise gcmd.error(
+-                "Device '%s' not found"
+-                % name_b
+-            )
+-
+-
+-        a = self.devices[name_a]
+-        b = self.devices[name_b]
+-
+-
+-        value = (
+-            b[axis.lower()]
+-            -
+-            a[axis.lower()]
++        value = calculate_axis_offset(
++            a.position,
++            b.position,
++            axis
+         )
+ 
+-
+         gcmd.respond_info(
+             "METROLOGY OFFSET %s\n\n"
+             "REFERENCE : %s\n"
+@@ -806,8 +840,8 @@ class Metrology:
+             %
+             (
+                 axis.upper(),
+-                name_a,
+-                name_b,
++                a.name,
++                b.name,
+                 axis.upper(),
+                 value
+             )
+@@ -848,6 +882,165 @@ class Metrology:
+             "Z"
+         )
+ 
++    ####################################################################
++    # METROLOGY_BUILD_MACHINE
++    ####################################################################
++
++    def cmd_METROLOGY_BUILD_MACHINE(self, gcmd):
++        """
++        Build machine geometry from currently captured devices.
++        Calculates tool offsets relative to reference tool.
++        """
++        try:
++            self.workflow.build_from_devices(
++                self.devices
++            )
++
++            msg = "METROLOGY MACHINE BUILD\n"
++            msg += "Reference tool: %s\n" % self.workflow.get_reference_tool()
++
++            offsets = self.workflow.get_tool_offsets()
++            for name, offset in offsets.items():
++                msg += (
++                    "%s: X=%.6f Y=%.6f Z=%.6f\n"
++                    %
++                    (
++                        name,
++                        offset.x,
++                        offset.y,
++                        offset.z
++                    )
++                )
++
++            gcmd.respond_info(msg)
++
++        except Exception as e:
++            raise gcmd.error(str(e))
++
++    ####################################################################
++    # METROLOGY_SHOW_OFFSETS
++    ####################################################################
++
++    def cmd_METROLOGY_SHOW_OFFSETS(self, gcmd):
++        """
++        Display all calculated tool offsets.
++        """
++        try:
++            if not self._ensure_workflow_machine():
++                gcmd.respond_info("METROLOGY TOOL OFFSETS\nNo devices available")
++                return
++
++            msg = "METROLOGY TOOL OFFSETS\n"
++            msg += "Reference: %s\n" % self.workflow.get_reference_tool()
++
++            offsets = self.workflow.get_tool_offsets()
++            for name, offset in offsets.items():
++                msg += (
++                    "%s: X=%.6f Y=%.6f Z=%.6f\n"
++                    %
++                    (
++                        name,
++                        offset.x,
++                        offset.y,
++                        offset.z
++                    )
++                )
++
++            gcmd.respond_info(msg)
++
++        except Exception as e:
++            gcmd.respond_info(
++                "METROLOGY TOOL OFFSETS\n"
++                "ERROR: %s" % str(e)
++            )
++            return
++
++    ####################################################################
++    # METROLOGY_SET_REFERENCE
++    ####################################################################
++
++    def cmd_METROLOGY_SET_REFERENCE(self, gcmd):
++        """
++        Set which device is the reference tool for calibration.
++        """
++        device = self._get_one_device(
++            gcmd,
++            "Usage: METROLOGY_SET_REFERENCE NAME=<device>"
++        )
++
++        self.workflow.set_reference_tool(device.name)
++
++        gcmd.respond_info(
++            "Reference tool set to '%s'"
++            % device.name
++        )
++
++    ####################################################################
++    # METROLOGY_APPLY_OFFSETS
++    ####################################################################
++
++    def cmd_METROLOGY_APPLY_OFFSETS(self, gcmd):
++        """
++        Apply calculated offsets to extruder configuration.
++        Uses default mapping unless tool parameters are provided.
++
++        Default mapping:
++          RIGHT → extruder
++          LEFT → extruder1
++          PROBE → probe
++
++        Manual mapping example:
++          METROLOGY_APPLY_OFFSETS RIGHT=extruder LEFT=extruder1
++        """
++        try:
++            if not self._ensure_workflow_machine():
++                raise RuntimeError(
++                    "No devices available. Capture devices first."
++                )
++
++            # Check for manual tool mapping parameters
++            tool_mapping = {}
++            for device_name in ["RIGHT", "LEFT", "PROBE"]:
++                section = gcmd.get(device_name, None)
++                if section is not None:
++                    tool_mapping[device_name] = section
++
++            # Apply offsets to configuration
++            results = self.workflow.apply_offsets_to_config(
++                self.printer.lookup_object("configfile"),
++                tool_mapping if tool_mapping else None
++            )
++
++            # Build response message
++            msg = "METROLOGY OFFSETS APPLIED\n"
++            msg += "Mapping:\n"
++
++            for device_name, info in results.items():
++                offset = info["offset"]
++                section = info["section"]
++                msg += (
++                    "\n[%s] (%s):\n"
++                    " offset_x = %.6f\n"
++                    " offset_y = %.6f\n"
++                    " offset_z = %.6f\n"
++                    %
++                    (
++                        section,
++                        device_name,
++                        offset.x,
++                        offset.y,
++                        offset.z
++                    )
++                )
++
++            msg += "\nOffsets saved to configuration.\n"
++            msg += "Restart Klipper to apply changes."
++
++            gcmd.respond_info(msg)
++
++        except Exception as e:
++            raise gcmd.error(str(e))
++
+ ####################################################################
+ # Klipper loader
+ ####################################################################
+@@ -855,3 +1048,4 @@ class Metrology:
+ def load_config(config):
+ 
+     return Metrology(config)
++
+diff --git a/klippy/extras/metrology/models.py b/klippy/extras/metrology/models.py
+index e98bddf4a..5dd2ef55d 100644
+--- a/klippy/extras/metrology/models.py
++++ b/klippy/extras/metrology/models.py
+@@ -1,22 +1,69 @@
+ # Klipper Metrology Extension
+ # Data models
+ 
++from typing import Optional, Dict, Any
++from dataclasses import dataclass
+ 
++############################################################
++# Point3D
++############################################################
+ class Point3D:
++    """Represents a 3D point in space with x, y, z coordinates."""
+ 
+-    def __init__(self, x=0.0, y=0.0, z=0.0):
++    def __init__(self, x: float = 0.0, y: float = 0.0, z: float = 0.0) -> None:
++        """
++        Initialize a 3D point.
++
++        Args:
++            x (float): X coordinate
++            y (float): Y coordinate
++            z (float): Z coordinate
++        """
+         self.x = float(x)
+         self.y = float(y)
+         self.z = float(z)
+ 
+-    def offset_to(self, other):
++    def __add__(self, other: 'Point3D') -> 'Point3D':
++        """Add two Point3D objects."""
++        if not isinstance(other, Point3D):
++            return NotImplemented
++        return Point3D(
++            self.x + other.x,
++            self.y + other.y,
++            self.z + other.z
++        )
++
++    def __sub__(self, other: 'Point3D') -> 'Point3D':
++        """Subtract two Point3D objects."""
++        if not isinstance(other, Point3D):
++            return NotImplemented
+         return Point3D(
+-            other.x - self.x,
+-            other.y - self.y,
+-            other.z - self.z
++            self.x - other.x,
++            self.y - other.y,
++            self.z - other.z
+         )
+ 
+-    def as_dict(self):
++    def __eq__(self, other: object) -> bool:
++        """Check equality with another Point3D object."""
++        if not isinstance(other, Point3D):
++            return NotImplemented
++        return (
++            self.x == other.x and
++            self.y == other.y and
++            self.z == other.z
++        )
++
++    def __repr__(self) -> str:
++        """String representation of the Point3D."""
++        return (
++            f"Point3D("
++            f"x={self.x:.6f}, "
++            f"y={self.y:.6f}, "
++            f"z={self.z:.6f})"
++        )
++
++    def as_dict(self) -> Dict[str, float]:
++        """Convert Point3D to dictionary representation."""
+         return {
+             "x": self.x,
+             "y": self.y,
+@@ -24,23 +71,71 @@ class Point3D:
+         }
+ 
+     @classmethod
+-    def from_dict(cls, data):
++    def from_dict(cls, data: Dict[str, Any]) -> 'Point3D':
++        """
++        Create Point3D from dictionary.
++
++        Args:
++            data (Dict[str, Any]): Dictionary with x, y, z keys
++
++        Returns:
++            Point3D: New Point3D instance
++        """
+         return cls(
+             data["x"],
+             data["y"],
+             data["z"]
+         )
+ 
++############################################################
++# ReferencePoint
++############################################################
++#
++# Represents any physical point measured.
++#
++# Examples:
++#
++# BED_ORIGIN
++# HOTEND_RIGHT
++# HOTEND_LEFT
++#
++############################################################
+ 
+-class Measurement:
++class ReferencePoint:
++    """Represents a physical reference point measured in the system."""
+ 
+-    def __init__(self, name, position):
++    def __init__(self, name: str, position: Optional[Point3D] = None) -> None:
++        """
++        Initialize a reference point.
++
++        Args:
++            name (str): Name of the reference point
++            position (Optional[Point3D]): Position of the point, defaults to origin
++        """
+         self.name = name.upper()
++        if position is None:
++            position = Point3D()
+         self.position = position
+ 
++############################################################
++# Device
++############################################################
++#
++# Maintained for compatibility.
++#
++# It may be replaced in the future by ReferencePoint definitively.
++#
++############################################################
+ 
+-class Device:
++class Device(ReferencePoint):
++    """Represents a measurement device (legacy compatibility)."""
+ 
+-    def __init__(self, name, position):
+-        self.name = name.upper()
+-        self.position = position
+\ No newline at end of file
++    def __init__(self, name: str, position: Optional[Point3D] = None) -> None:
++        """
++        Initialize a device.
++
++        Args:
++            name (str): Name of the device
++            position (Optional[Point3D]): Position of the device, defaults to origin
++        """
++        super().__init__(name, position)
+\ No newline at end of file
+diff --git a/klippy/extras/metrology/persistence.py b/klippy/extras/metrology/persistence.py
+index e69de29bb..3bbe4f68c 100644
+--- a/klippy/extras/metrology/persistence.py
++++ b/klippy/extras/metrology/persistence.py
+@@ -0,0 +1,61 @@
++# Klipper Metrology Extension
++# Persistence operations
++
++from typing import Dict, Any, Optional
++import json
++import os
++
++def save_config(machine, filepath: str) -> bool:
++    """
++    Save machine configuration to file.
++
++    Args:
++        machine: Machine object to save
++        filepath (str): Path to save the configuration
++
++    Returns:
++        bool: True if successful, False otherwise
++    """
++    try:
++        config_data = {
++            "bed_origin": machine.bed_origin.as_dict(),
++            "bed_size": machine.bed_size.as_dict(),
++            "tool_offsets": {
++                name: offset.as_dict()
++                for name, offset in machine.tool_offsets.items()
++            },
++            "reference_tool": machine.reference_tool,
++            "devices": {
++                name: device.position.as_dict()
++                for name, device in machine.devices.items()
++            }
++        }
++
++        with open(filepath, 'w') as f:
++            json.dump(config_data, f, indent=2)
++        return True
++    except Exception as e:
++        print(f"Error saving config: {e}")
++        return False
++
++def load_config(filepath: str) -> Optional[Dict[str, Any]]:
++    """
++    Load machine configuration from file.
++
++    Args:
++        filepath (str): Path to load the configuration from
++
++    Returns:
++        Optional[Dict[str, Any]]: Loaded configuration data or None if failed
++    """
++    try:
++        if not os.path.exists(filepath):
++            return None
++
++        with open(filepath, 'r') as f:
++            config_data = json.load(f)
++
++        return config_data
++    except Exception as e:
++        print(f"Error loading config: {e}")
++        return None
