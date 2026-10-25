@@ -1,0 +1,14 @@
+dbus-python==1.4.0
+distlib==0.3.9
+distro-info==1.13
+filelock==3.18.0
+gpiod==2.2.0
+iotop==0.6
+packaging==25.0
+platformdirs==4.3.7
+python-apt==3.0.0
+PyYAML==6.0.2
+spidev==3.6
+unattended-upgrades==0.1
+virtualenv==20.31.2
+wheel==0.46.1
