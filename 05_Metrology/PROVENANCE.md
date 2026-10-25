@@ -88,11 +88,16 @@ Destaques que **não** existem em nenhuma árvore versionada:
 - Ventoinhas remapeadas: `[fan]` PF6, `hotend_fan_0` PF7, `hotend_fan_1` PF9.
 - `max_velocity 600`, `max_accel 10000`.
 
-## Inconsistência aberta
+## Pendência do mesh
 
-`mesh_max: 253,165` excede `stepper_y position_max: 156` e o start G-code do OrcaSlicer não carrega
-nem recalibra mesh (`G28` + `M140/M190` + `M104/M109` apenas). O perfil salvo existe, mas não é
-aplicado — a primeira camada depende do nivelamento manual em 3 pontos (`BED_CALIBRATE`).
+O perfil `default` existe (63 pontos, salvos em 11/08) mas **nunca é carregado**: o start G-code do
+OrcaSlicer faz apenas `G28` + `M140/M190` + `M104/M109`, e os logs de outubro não registram nenhum
+comando `BED_MESH*`. Como a mesa foi re-nivelada mecanicamente depois de agosto (`BED_CALIBRATE`
+em uso rotineiro), o perfil está vencido. Diagnóstico completo e correção em
+[`../01_Docs/07_Bed_Mesh.md`](../01_Docs/07_Bed_Mesh.md).
+
+> Correção: a versão anterior deste documento afirmava que `mesh_max` excedia `position_max`.
+> Errado — `mesh_min/max` são coordenadas da sonda; o bico chega a 235,154, dentro dos limites.
 
 ---
 

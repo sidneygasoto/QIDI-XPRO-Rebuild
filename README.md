@@ -164,12 +164,13 @@ criados aparecem como pendentes.
 | 05_Metrology_Architecture.md | Arquitetura da extensão de metrologia | ✅ |
 | 03_Manta_M8P.md | Caracterização da controladora | ⏳ |
 | 06_Hardware_QIDI.md | Inventário da impressora | ⏳ |
-| 07_Esquema_Eletrico.md | Esquemas elétricos | ⏳ |
+| 07_Bed_Mesh.md | Diagnóstico e calibração do bed mesh | ✅ |
 | 08_Klipper_Configuration.md | Configuração do Klipper | ⏳ |
 | 09_Macros.md | Macros do Klipper | ⏳ |
 | 10_Calibracao.md | Procedimentos de calibração | ⏳ |
 | 11_Problemas_Conhecidos.md | Registro de problemas e soluções | ⏳ |
 | 12_Referencias.md | Datasheets e referências | ⏳ |
+| 14_Esquema_Eletrico.md | Esquemas elétricos | ⏳ |
 
 A configuração operacional **não** fica em `01_Docs/`: ela é versionada em
 [`03_Klipper_Config/`](03_Klipper_Config/README.md), espelho da CB1.

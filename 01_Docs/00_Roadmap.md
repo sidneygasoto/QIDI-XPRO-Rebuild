@@ -98,7 +98,7 @@ Concluído:
 
 Pendente:
 
-- Reconciliar `mesh_max` com `position_max` e aplicar o perfil no start G-code.
+- Recalibrar o mesh a quente e carregar o perfil no início da impressão.
 
 ---
 

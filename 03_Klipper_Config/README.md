@@ -70,6 +70,6 @@ Conferir com `GET /printer/info` que o estado voltou a `ready`.
 
 1. **`metrology.cfg` comentado** — a extensão não carrega (erro de sintaxe + API de persistência
    divergente). Ver [`../05_Metrology/PROVENANCE.md`](../05_Metrology/PROVENANCE.md) §3.
-2. **Mesh inconsistente** — `mesh_max y=165` excede `position_max y=156`; além disso nenhum start
-   G-code carrega o perfil. A compensação não está em uso.
+2. **Mesh inerte e vencido** — o perfil salvo em 11/08 nunca é carregado e antecede o
+   re-nivelamento mecânico da mesa. Ver [`../01_Docs/07_Bed_Mesh.md`](../01_Docs/07_Bed_Mesh.md).
 3. **`min_extrude_temp: 0`** nas duas extrusoras — permite extrusão a frio.

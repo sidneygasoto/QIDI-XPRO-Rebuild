@@ -91,7 +91,7 @@ também no repositório.
 
 | Prioridade | Item |
 |---|---|
-| P1 | Corrigir a inconsistência do mesh: `mesh_max y=165` > `position_max 156` e nenhum start G-code carrega o perfil |
+| P1 | Mesh inerte e vencido: o perfil de 11/08 não é carregado e antecede o re-nivelamento — ver [`01_Docs/07_Bed_Mesh.md`](01_Docs/07_Bed_Mesh.md) |
 | P1 | Resolver a divergência de branches do repositório (`main` 2 commits à frente e 2 atrás de `origin/main`) |
 | P2 | Reparar a extensão de metrologia (separar versão monolítica, restaurar API, corrigir offsets) |
 | P2 | `min_extrude_temp: 0` nas extrusoras — permite extrusão a frio |
