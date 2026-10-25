@@ -96,37 +96,76 @@ injetaria até ~1 mm de correção errada.
 
 # 6. Procedimento executado
 
-1. Aquecimento estabilizado: mesa 80 °C, bico 250 °C, 10 min de patamar.
-2. `G28`.
-3. `BED_MESH_CALIBRATE PROBE_COUNT=7,5` — 35 pontos, ~5 min.
-4. `BED_MESH_PROFILE SAVE=default` + `SAVE_CONFIG`.
-5. Revalidação do `z_offset` **após** a malha (a malha herda o erro do offset).
-6. `BED_MESH_PROFILE LOAD=default` no início da impressão.
-7. Impressão de teste de primeira camada e medição em 5 pontos.
+1. Aquecimento: mesa 80 °C, bico 180 °C (sem ooze), com `SET_IDLE_TIMEOUT TIMEOUT=3600`.
+2. Patamar térmico até a potência da mesa estabilizar (~20 %).
+3. `G28` — `homed_axes = xyz`, home em X 265 / Y 155,3 / Z 159.
+4. **`PROBE_ACCURACY SAMPLES=10`** no centro (115, 75).
+5. `BED_MESH_CALIBRATE` — primeira tentativa falhou por tolerância (ver §6.1).
+6. Varredura das bordas para localizar o limite físico da chapa (ver §6.2).
+7. `BED_MESH_CALIBRATE PROBE_COUNT=7,5 MESH_MAX=253,154 SAMPLES_TOLERANCE=0.03` — 35 pontos.
+8. Ajuste permanente de `probe.cfg` e `bed_mesh.cfg`.
+9. `SAVE_CONFIG` — malha gravada no `printer.cfg`; Klipper reiniciado às 17:04:14.
+
+## 6.1 Repetibilidade da sonda
+
+```
+probe accuracy results: maximum 0.370500, minimum 0.358000, range 0.012500,
+average 0.362000, median 0.361750, standard deviation 0.003742
+```
+
+Faixa de **12,5 µm** e desvio-padrão de **3,7 µm** em 10 amostras. A tolerância configurada era
+`samples_tolerance: 0.010` (10 µm) e o primeiro ponto da malha falhou com
+`Probe samples exceed samples_tolerance`. Corrigido para **0,030 mm**, mantendo
+`samples_result: median` e `samples: 5` — o erro da mediana fica em ~4 µm.
+
+Este era o `PROBE_ACCURACY` previsto no README desde julho e nunca medido.
+
+## 6.2 Limite físico da chapa
+
+Sondagens isoladas na borda (coordenadas da sonda):
+
+| Sonda Y | Leituras (3 amostras) | Interpretação |
+|---|---|---|
+| 146 | −0,085 / +0,016 / +0,038 | dispersa, dentro da chapa |
+| 156 | −0,007 / +0,013 / +0,016 | estável, ainda sobre a chapa |
+| 161 | −0,057 / −0,050 / −0,052 | **degrau de −0,06** |
+| 166 | −0,195 / −0,200 / −0,197 | **degrau de −0,20** — fora da chapa |
+
+A sonda em Y = 165 (o `mesh_max` antigo) estava **9 mm além da chapa de aço**; o sensor lia o
+quadro, não a mesa. Isso explica o resíduo de −0,36 mm naquele canto na primeira tentativa.
+
+Na borda X o comportamento é saudável: 253 → +0,055; 258 → +0,049; 263 → +0,010. O limite de
+253 é seguro.
+
+Novo limite adotado: `mesh_max: 253,154` (sonda em 154, duas amostras dentro da chapa).
 
 ---
 
 # 7. Critérios de aceite
 
-- [ ] `BED_MESH_CALIBRATE` conclui sem `Probe triggered prior to movement` ou `Move out of range`
-- [ ] amplitude do mesh novo < 0,4 mm
-- [ ] variação de espessura da primeira camada ≤ 0,03 mm em 5 pontos
-- [ ] `z_offset` final registrado em `SAVE_CONFIG`
+- [x] `BED_MESH_CALIBRATE` conclui sem `Probe triggered prior to movement` ou `Move out of range`
+- [ ] amplitude do mesh novo **< 0,4 mm** — obtido **0,417 mm** (ver §8)
+- [ ] variação de espessura da primeira camada ≤ 0,03 mm em 5 pontos — pendente (§10)
+- [ ] `z_offset` final registrado em `SAVE_CONFIG` — pendente (§10)
 
 ---
 
 # 8. Resultado
 
-> Preenchido após a execução. Ver seção 9.
+| Item | Antes (11/08) | Agora (25/10) |
+|---|---|---|
+| Data/hora | 2026-08-11 22:09 | 2026-10-25 17:04 |
+| `probe_count` | 9 × 7 (63 pontos) | **7 × 5 (35 pontos)** |
+| Região | 40..253 × 30..**165** | 40..253 × 30..**154** |
+| Amplitude bruta | 0,988 mm | **0,417 mm** |
+| Inclinação X | −0,023 mm/100 mm | **−0,063 mm/100 mm** |
+| Inclinação Y | +0,534 mm/100 mm | **−0,134 mm/100 mm** |
+| Deformação (resíduo) | 0,375 mm (RMS 0,075) | **0,333 mm (RMS 0,076)** |
+| Aplicação | nunca carregado | pendente de `LOAD` (§10) |
 
-| Item | Valor |
-|---|---|
-| Data/hora | — |
-| `probe_count` | — |
-| Amplitude do mesh | — |
-| Inclinação X / Y | — |
-| Deformação | — |
-| `z_offset` final | — |
+Leitura: a **inclinação caiu 4×** — efeito direto do re-nivelamento mecânico. A **deformação
+permaneceu praticamente igual** (RMS 0,076 mm), como esperado: é forma física da chapa, não erro de
+nivelamento. A amplitude de 0,417 mm concentra-se na última linha e coluna, já na transição de borda.
 
 ---
 
@@ -134,6 +173,22 @@ injetaria até ~1 mm de correção errada.
 
 | Data | Evento |
 |---|---|
-| 2026-08-11 | Mesh original medido e salvo como `default` (9×7, 63 pontos) |
+| 2026-08-11 | Mesh original medido e salvo como `default` (9×7, 63 pontos, sonda até Y=165) |
 | 2026-10-25 | Diagnóstico: perfil inerte e vencido; correção da afirmação sobre limites |
-| 2026-10-25 | Recalibração e aplicação (ver §8) |
+| 2026-10-25 | `PROBE_ACCURACY`: faixa 12,5 µm; tolerância ajustada de 0,010 para 0,030 |
+| 2026-10-25 | Borda Y mapeada: sonda sai da chapa a partir de ~157 |
+| 2026-10-25 | Malha refeita 7×5, `mesh_max 253,154`, gravada em `SAVE_CONFIG` |
+
+---
+
+# 10. Pendências
+
+| # | Item | Depende de |
+|---|---|---|
+| 1 | Revalidar o `z_offset` **após** a malha (`PROBE_CALIBRATE` com papel ou teste de primeira camada) | presença no equipamento |
+| 2 | Carregar o perfil no início da impressão (`BED_MESH_PROFILE LOAD=default`) | decisão sobre centralizar o start |
+| 3 | Teste de primeira camada 240×140 com medição em 5 pontos | impressão com filamento |
+| 4 | Confirmar se a última linha/coluna do perfil representa a chapa ou transição de borda | nova sondagem, se necessário |
+
+> Enquanto o item 2 não for feito, a malha está **gravada mas não aplicada** — a máquina continua
+> imprimindo sem compensação, exatamente como antes.
