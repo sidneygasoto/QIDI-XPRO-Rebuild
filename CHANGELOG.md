@@ -20,7 +20,7 @@ divergentes foram reconciliadas em um único caminho.
 - `05_Metrology/` — preservação da extensão de metrologia: código-fonte, patches staged/unstaged,
   estado do git, tarballs e `PROVENANCE.md`.
 - `07_Backup/config_v0.1.0_2026-07/` — árvore de julho da fase pré-calibração, com `NOTE.md`.
-- `07_Backup/config_v0.2.5_2026-07-28/` — árvore do commit `cb7f9fc` (geometria + dual nozzle),
+- `07_Backup/config_2026-07-28_v0.2.5/commit-tree/` — árvore do commit `cb7f9fc` (geometria + dual nozzle),
   com `NOTE.md`.
 - `07_Backup/*/NOTE.md` — avisos explícitos de que essas árvores **não** devem ser restauradas.
 - `05_Metrology/PROVENANCE.md` — registro completo da captura de 25/10/2026.
@@ -61,7 +61,7 @@ Commit `cb7f9fc`, tag anotada `v0.2.5` (a mensagem do commit diz “v0.2.0”).
   abandonado na máquina.
 - Offsets entre bicos via `SET_GCODE_OFFSET` (`T1`).
 - `probe.cfg` e `adxl345.cfg` como arquivos próprios.
-- Snapshot completo da configuração em `07_Backup/config_v0.2.0/`.
+- Snapshot completo da configuração em `07_Backup/config_2026-07-28_v0.2.5/machine-snapshot/`.
 
 ## Alterado
 

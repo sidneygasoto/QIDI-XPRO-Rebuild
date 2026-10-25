@@ -103,7 +103,7 @@ também no repositório.
 
 1. **Configuração não versionada até 25/10.** As edições de julho a agosto viveram apenas no
    diretório do Klipper. Mitigado por `03_Klipper_Config/` + `MANIFEST.sha256`.
-2. **Restaurar árvores antigas causa colisão.** `07_Backup/config_v0.2.5_2026-07-28/` usa homing
+2. **Restaurar árvores antigas causa colisão.** `07_Backup/config_2026-07-28_v0.2.5/commit-tree/` usa homing
    sensorless com limites diferentes dos reais. Ver o `NOTE.md` de cada snapshot.
 3. **Credenciais documentadas estão obsoletas.** `root/root` não funciona mais; a chave SSH está
    autorizada para `root`, não para `sidney`.

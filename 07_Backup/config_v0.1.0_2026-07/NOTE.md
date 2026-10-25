@@ -1,7 +1,9 @@
 # Configuração v0.1.0 — julho/2026
 
-**Origem:** `11_Config_qidi_xpro/klipper/`, commit `931e853` (09/07/2026). Movida para cá em
-25/10/2026, durante a consolidação da configuração.
+**Origem:** commit `931e853` (09/07/2026), caminho original `11_Config_qidi_xpro/klipper/`.
+
+Reconstruída em 25/10/2026 a partir dos blobs do próprio commit, com `core.autocrlf=false` — os
+arquivos estão em **LF**, byte a byte como o Git os armazena.
 
 ## Estado
 
@@ -21,5 +23,5 @@ Pré-calibração — a árvore que existia antes de a máquina começar a opera
 ## Integridade
 
 ```
-d60fdf923e2430e347391276791c3050309c654a274e8902da7ae1b8540e6b7b  printer.cfg
+03886e1652f24123d58de2d8e310133d26e8f174ad5f482d7a7920aa1e45a7a1  printer.cfg
 ```
