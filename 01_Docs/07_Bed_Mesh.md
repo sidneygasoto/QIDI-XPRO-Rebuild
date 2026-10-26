@@ -146,7 +146,7 @@ Novo limite adotado: `mesh_max: 253,154` (sonda em 154, duas amostras dentro da 
 - [x] `BED_MESH_CALIBRATE` conclui sem `Probe triggered prior to movement` ou `Move out of range`
 - [ ] amplitude do mesh novo **< 0,4 mm** — obtido **0,417 mm** (ver §8)
 - [ ] variação de espessura da primeira camada ≤ 0,03 mm em 5 pontos — pendente (§10)
-- [ ] `z_offset` final registrado em `SAVE_CONFIG` — pendente (§10)
+- [x] `z_offset` final registrado em `SAVE_CONFIG`: **0,515 mm** (era 0,652)
 
 ---
 
@@ -161,7 +161,12 @@ Novo limite adotado: `mesh_max: 253,154` (sonda em 154, duas amostras dentro da 
 | Inclinação X | −0,023 mm/100 mm | **−0,063 mm/100 mm** |
 | Inclinação Y | +0,534 mm/100 mm | **−0,134 mm/100 mm** |
 | Deformação (resíduo) | 0,375 mm (RMS 0,075) | **0,333 mm (RMS 0,076)** |
-| Aplicação | nunca carregado | pendente de `LOAD` (§10) |
+| `z_offset` | 0,652 mm | **0,515 mm** |
+| Aplicação | nunca carregado | **`BED_MESH_PROFILE LOAD=default` no `PRINT_START`** |
+
+Segunda passagem (26/10), já com o `z_offset` corrigido: amplitude 0,433 mm, perfil idêntico em forma.
+O `z_offset` foi revalidado com papel a 80 °C e o valor caiu de 0,652 para **0,515 mm** — ou seja, a
+primeira camada vinha **0,137 mm baixa** em toda a mesa desde o último re-nivelamento.
 
 Leitura: a **inclinação caiu 4×** — efeito direto do re-nivelamento mecânico. A **deformação
 permaneceu praticamente igual** (RMS 0,076 mm), como esperado: é forma física da chapa, não erro de
@@ -178,6 +183,8 @@ nivelamento. A amplitude de 0,417 mm concentra-se na última linha e coluna, já
 | 2026-10-25 | `PROBE_ACCURACY`: faixa 12,5 µm; tolerância ajustada de 0,010 para 0,030 |
 | 2026-10-25 | Borda Y mapeada: sonda sai da chapa a partir de ~157 |
 | 2026-10-25 | Malha refeita 7×5, `mesh_max 253,154`, gravada em `SAVE_CONFIG` |
+| 2026-10-26 | `PROBE_CALIBRATE` com papel a 80 °C: `z_offset` 0,652 → **0,515 mm** |
+| 2026-10-26 | Malha refeita com o offset novo e aplicada no `PRINT_START` |
 
 ---
 
@@ -185,10 +192,11 @@ nivelamento. A amplitude de 0,417 mm concentra-se na última linha e coluna, já
 
 | # | Item | Depende de |
 |---|---|---|
-| 1 | Revalidar o `z_offset` **após** a malha (`PROBE_CALIBRATE` com papel ou teste de primeira camada) | presença no equipamento |
-| 2 | Carregar o perfil no início da impressão (`BED_MESH_PROFILE LOAD=default`) | decisão sobre centralizar o start |
+| 1 | ~~Revalidar o `z_offset`~~ — feito em 26/10: **0,515 mm** | — |
+| 2 | ~~Carregar o perfil no início~~ — feito: `PRINT_START` carrega `default` | falta o fatiador chamar `PRINT_START` |
 | 3 | Teste de primeira camada 240×140 com medição em 5 pontos | impressão com filamento |
 | 4 | Confirmar se a última linha/coluna do perfil representa a chapa ou transição de borda | nova sondagem, se necessário |
 
-> Enquanto o item 2 não for feito, a malha está **gravada mas não aplicada** — a máquina continua
-> imprimindo sem compensação, exatamente como antes.
+> O `PRINT_START` do Klipper já carrega a malha, mas **o OrcaSlicer ainda usa o start G-code
+> embutido no perfil** e não chama a macro. Enquanto isso não for trocado no fatiador, a malha
+> continua sem efeito nas impressões.
