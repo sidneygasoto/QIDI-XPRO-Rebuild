@@ -20,3 +20,5 @@
 *.jpg   -text
 *.jpeg  -text
 *.tgz   -text
+*.3mf   -text
+*.stl   -text
