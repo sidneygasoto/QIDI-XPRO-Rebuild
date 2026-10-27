@@ -19,6 +19,11 @@ lateral conta os dentes. Cada dente gera um pulso no sinal.
 
 **Medição realizada nesta unidade: 85 pulsos em 200 mm de filamento → 2,35 mm por pulso.**
 
+Manual do fabricante (PDF sem camada de texto, apenas imagens):
+[`10_Datasheets/IdeaFormer Manual.pdf`](../10_Datasheets/IdeaFormer%20Manual.pdf). Ele não traz a
+pinagem elétrica — apenas renders e exemplos de configuração de Marlin/Klipper —, por isso o 5 V foi
+confirmado no pinout da Manta e a ordem dos pinos do conector deve ser verificada na bancada.
+
 | Situação | Chave de fim | **Sensor de movimento** |
 |---|---|---|
 | Filamento acabou | detecta | detecta |
