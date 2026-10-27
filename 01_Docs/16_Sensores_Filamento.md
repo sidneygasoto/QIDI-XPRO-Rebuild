@@ -76,6 +76,34 @@ pulsos por milímetro (roda dentada), `7.0` é folgado.
 
 Comece com **10.0** e reduza depois de confirmar que não há falso disparo.
 
+## 4.3 Identificar os pinos do conector (unidade IdeaFormer)
+
+A unidade recebida é um **encoder óptico**: roda dentada movida pelo filamento, lida por um sensor
+óptico na plaquinha lateral. O conector branco é de 3 vias, mas **não vem com cabo** e não há
+serigrafia confiável — descubra a ordem com multímetro, **sem alimentar**:
+
+1. **GND** — no multímetro em continuidade, é o pino ligado ao plano de terra da plaqueta (e ao
+   terminal do capacitor/ LED do sensor óptico).
+2. **V** — é o pino que alimenta o LED do sensor óptico; costuma ir a um resistor e ao emissor.
+3. **S** — é o que sai do coletor do fototransistor (o sinal). Normalmente com resistor de pull-up
+   na própria plaqueta.
+
+Se ficar em dúvida entre V e S: alimente **em 3,3 V primeiro** (menos risco) com o terra correto e
+meça os dois pinos restantes. O que estiver em ~3,3 V fixo é V; o que alternar ao girar a roda é S.
+
+> Só depois de identificar S é que o fio vai para `PF0` / `PC15`.
+
+## 4.4 Cabo
+
+O conector é JST de 2,0 mm (PH) ou 2,5 mm (XH) — **meça o passo com paquímetro** antes de comprar o
+pigtail. Use cabo de 3 vias trançado, com comprimento suficiente para acompanhar o feixe dos hotends.
+
+## 4.5 Estimativa de partida para o `detection_length`
+
+A roda dentada tem diâmetro aproximado de 15 mm (circunferência ~47 mm) e cerca de 10 dentes, o que
+dá **um pulso a cada ~4–5 mm** de filamento. Nesse caso `detection_length: 10` é folgado e seguro.
+Confirme pela contagem real (item 4.2) antes de reduzir.
+
 # 5. Configuração no Klipper
 
 Criar `qidi_xpro/filament.cfg` e incluir no `printer.cfg` (`[include qidi_xpro/filament.cfg]`):
