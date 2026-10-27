@@ -1,14 +1,13 @@
 # Relé de Energia — BTT Relay V1.2 + Manta M8P V2.0
 
 **Documento:** 15_Relay_Energia.md
-**Versão:** 1.0.0
+**Versão:** 2.0.0
 **Data:** 2026-10-27
-**Objetivo:** permitir desligar a impressora pelo painel (Fluidd), cortando a rede elétrica depois
-que o host conclui o desligamento.
+**Objetivo:** desligar a impressora pelo painel, cortando a rede elétrica pelo relé.
 
-> **PERIGO — RISCO DE CHOQUE ELÉTRICO E INCÊNDIO.** Este documento descreve intervenção na rede
-> 220 V. Monte com a tomada desligada, isole o módulo, confira a serigrafia da placa e, se não tiver
-> habilitação para trabalho em instalações elétricas, execute a parte de rede com um eletricista.
+> **PERIGO — RISCO DE CHOQUE ELÉTRICO E INCÊNDIO.** Intervenção na rede 220 V. Montar com a tomada
+> desligada, isolar o módulo, conferir a serigrafia da placa. Sem habilitação para trabalho em
+> instalações elétricas, execute a parte de rede com um eletricista.
 
 ---
 
@@ -19,143 +18,132 @@ que o host conclui o desligamento.
 | `AC IN` (L / N) | entrada da rede — 85 a 265 V AC, 50/60 Hz |
 | `AC OUT` (L / N) | saída que alimenta a fonte da impressora |
 | `SC_DET` (5 V + GND) | monitora a linha de 5 V; curto ou perda de 5 V corta a energia |
-| `PS_ON_IN` (sinal + GND) | controle: **nível ALTO mantém ligado**; nível baixo ou ausente desliga em **15–20 s** |
+| `PS_ON_IN` (sinal + GND) | controle: **nível ALTO mantém ligado**; ao cair, desliga em **15–20 s** |
 
-O módulo tem próprio MCU (STC15W201S), aceita lógica de 3,3 V ou 5 V e mantém a alimentação por
-15–20 s após o sinal cair — tempo que permite ao Linux encerrar com segurança.
+MCU próprio (STC15W201S), lógica de 3,3 V ou 5 V, e atraso de 15–20 s que permite ao Linux encerrar.
 
-# 2. Decisão de projeto: quem comanda o relé
+# 2. Decisão: controle pelo `PS_ON` da Manta (PD14)
 
-Duas opções foram avaliadas:
+| Opção | Como funciona |
+|---|---|
+| **A — `PS_ON` da Manta (PD14)** ✅ adotada | o Klipper controla o pino; o relé corta após o sinal cair |
+| B — GPIO da CB1 (PC8, pino 40) | o host mantém a linha alta; ao concluir o `poweroff`, a linha cai |
 
-| Opção | Como funciona | Problema |
-|---|---|---|
-| **A — `PS_ON` da Manta (PD14)** | o firmware corta a energia | o MCU é alimentado pela mesma fonte: ao cortar a AC, a CB1 morre sem desligar o sistema de arquivos → risco de corromper o cartão |
-| **B — GPIO da CB1 (PC8, pino 40)** | o host mantém a linha alta; ao concluir o `poweroff`, a linha cai e o relé corta a AC 15 s depois | exige overlay + serviço na CB1 |
+A opção A tem **duas consequências** que precisam estar claras:
 
-**Adotada: opção B.** É a única que garante corte de energia **depois** do desligamento limpo do
-host. O `PS_ON` da Manta (PD14) permanece desligado do módulo.
+**2.1 O MCU é alimentado pela mesma fonte que o relé corta.** Se o relé cortar primeiro, a CB1 morre
+sem encerrar o sistema de arquivos. Por isso o desligamento é sempre em dois passos, dentro da
+macro: **baixar o pino** (inicia o temporizador de 15–20 s) e **imediatamente pedir o `poweroff` do
+host**. O temporizador é a rede de segurança — se o host travar, o corte acontece de todo modo, com
+risco de corrupção do cartão.
+
+**2.2 Janela de boot.** Ao aplicar rede, o relé fecha e começa a contar 15–20 s. O Klipper só eleva
+`PD14` depois que o host sobe e carrega a configuração — tipicamente **30–40 s** na CB1. Se o relé
+cortar antes disso, o sistema entra em **loop de boot**.
+O firmware publicado pela BTT não tem variante com atraso maior (o repositório traz um único
+`STC15W201S.hex`). O **teste 1** da seção 8 responde se isso ocorre na prática.
 
 # 3. Diagrama
 
-![Ligação do relé à Manta e à CB1](../08_Fotos/Relay_V12_Manta_M8P.png)
+![Ligação do relé à Manta](../08_Fotos/Relay_V12_Manta_M8P.png)
 
 # 4. Ligações, ponto a ponto
 
 | # | Origem | Destino | Observação |
 |---|---|---|---|
-| 1 | Rede — condutor F (ou L, conforme a instalação) | `AC IN` do relé | passar por fusível/disjuntor da impressora |
-| 2 | Rede — neutro | `AC IN` (N) do relé | manter a polaridade |
-| 3 | `AC OUT` do relé — L e N | entrada AC da fonte 24 V | é a fonte da impressora que será comutada |
-| 4 | `SC_DET` 5 V e GND | `5V` e `GND` da Manta | monitor de curto; sem ele, a proteção não atua |
-| 5 | `PS_ON_IN` sinal | **CB1, pino físico 40 (GPIO21 / PC8)** | sinal de 3,3 V |
-| 6 | `PS_ON_IN` GND | GND da CB1/Manta | referência comum obrigatória |
-| 7 | — | `PS_ON` (PD14) da Manta | **deixar desconectado** |
-
-> Confira na serigrafia da sua unidade: os nomes usados aqui são os documentados pela BTT
-> (`AC IN`, `AC OUT`, `SC_DET`, `PS_ON_IN`). Em versões antigas do manual os mesmos conectores
-> aparecem apenas nos desenhos.
+| 1 | Rede — fase | `AC IN` (L) | após fusível/disjuntor |
+| 2 | Rede — neutro | `AC IN` (N) | manter polaridade |
+| 3 | `AC OUT` (L/N) | entrada AC da fonte 24 V | é a fonte que será comutada |
+| 4 | `SC_DET` (5 V + GND) | `5V` e `GND` **da Manta** | monitor de curto |
+| 5 | `PS_ON_IN` sinal | **`PS-ON` da Manta — PD14** | 3,3 V |
+| 6 | `PS_ON_IN` GND | GND da Manta | referência comum |
+| 7 | — | CB1 pino 40 | **não usado** nesta opção |
 
 # 5. Software
 
-## 5.1 CB1 — manter a linha alta
+## 5.1 Arquivo de configuração
 
-A CB1 precisa elevar o `PS_ON_IN` **antes** dos 15 s, senão o relé corta a energia durante o boot.
-Isso é resolvido com:
-
-1. **overlay de device tree** expondo o pino 40 como linha GPIO nomeada (`btt-relay`);
-2. **serviço systemd** que solicita a linha como saída e a mantém em nível alto durante toda a
-   operação. Quando o sistema encerra, o serviço termina, a linha cai e o relé corta a energia
-   após o atraso.
-
-Implementação de referência, já validada para CB1 v2.2 + Manta: [`evgs/power_cb1`](https://github.com/evgs/power_cb1).
-Verificação após instalar:
-
-```bash
-sudo apt install gpiod
-gpioinfo | grep btt
-# esperado: line 72: unnamed "btt-relay" output active-high [used]
-```
-
-## 5.2 Klipper / Moonraker
-
-Nada muda no `printer.cfg`. O desligamento pelo painel já existe:
+Criado em `03_Klipper_Config/qidi_xpro/power.cfg` (espelho da CB1). Incluir no `printer.cfg`:
 
 ```ini
-[gcode_macro SHUTDOWN_HOST]
-description: Desliga a CB1 com segurança
+[include qidi_xpro/power.cfg]
+```
+
+Conteúdo:
+
+```ini
+[output_pin ps_on_pin]
+pin: PD14
+value: 1
+shutdown_value: 1
+
+[gcode_macro POWER_OFF]
+description: Desliga o host e corta a energia pelo relé
 gcode:
+    M118 Desligando - energia sera cortada em 15 a 20 s
+    SET_PIN PIN=ps_on_pin VALUE=0
     {action_call_remote_method("shutdown_machine")}
+
+[gcode_macro POWER_ON]
+description: Rearma o relé (mantém a energia ligada)
+gcode:
+    SET_PIN PIN=ps_on_pin VALUE=1
+    M118 Relé rearmado
 ```
 
-Fluxo completo: **`SHUTDOWN_HOST`** → Moonraker encerra o sistema (`systemd_dbus`, `shutdown_action: poweroff`)
-→ o serviço do relé termina → `PS_ON_IN` cai → **15–20 s depois a AC é cortada**.
+`shutdown_value: 1` é deliberado: um erro de G-code ou um shutdown do Klipper **não** deve derrubar a
+energia da máquina. O corte só acontece pela macro `POWER_OFF`.
 
-O `poweroff` configurado no `moonraker.conf` é pré-requisito:
+## 5.2 Fluxo de desligamento
 
-```ini
-[machine]
-provider: systemd_dbus
-shutdown_action: poweroff
-```
+`POWER_OFF` → `SET_PIN ps_on_pin VALUE=0` (relé inicia contagem) → `shutdown_machine` (host encerra)
+→ **15–20 s depois a AC é cortada**.
 
-# 6. Como ligar a impressora
+# 6. Como ligar
 
-A placa **não tem botão de ligar**. O manual só descreve `P5.4` como pino de reset/gravação de
-firmware do MCU. A sequência real de partida é:
+A placa não tem botão de partida. Ao aplicar rede (chave geral ou pulsador), o relé fecha por padrão
+e alimenta a fonte; a CB1 inicia o boot; **o Klipper precisa elevar PD14 antes do fim da janela**.
 
-1. aplicar rede ao módulo → o relé **fecha por padrão** e alimenta a fonte;
-2. a CB1 inicia o boot e o overlay de device tree eleva `PS_ON_IN` (~2–3 s, via u-boot);
-3. com o sinal alto, o relé **fica retido**;
-4. se o sinal não subir em **15–20 s**, o relé abre e a impressora desliga sozinha.
+| Opção de ligar | Como |
+|---|---|
+| Ciclar a chave geral | desligar/ligar; funciona se a janela de boot for respeitada |
+| Pulsador NA em série com a fase | um toque aplica rede — comportamento tipo ATX |
+| Tomada inteligente | liga remotamente |
 
-> **Consequência prática:** após desligar pelo painel, a **chave geral continua ligada** e o relé
-> está aberto. Para religar é preciso **ciclar a rede** (chave geral desligar/ligar) ou instalar um
-> botão.
+# 7. Cuidados
 
-## 6.1 Opções de botão de ligar
+1. **Isolamento**: 220 V expostos; caixa fechada.
+2. **Chave geral continua sendo o corte definitivo.**
+3. `SC_DET` no 5 V da Manta, nunca no 24 V.
+4. **Não ligar o pino 40 da CB1** nesta opção (evita dois drivers no mesmo sinal).
+5. Toda troca de estado do relé leva 15–20 s — não é instantânea.
 
-| Opção | Como funciona | Cuidado |
-|---|---|---|
-| **Pulsador NA de rede em série com a fase** | um toque aplica AC, a CB1 arranca e retém — comportamento tipo ATX | componente e fiação isolados para 220 V, em caixa fechada |
-| **Tomada inteligente / interruptor de parede** | liga remotamente, sem tocar na máquina | suportar a corrente de pico da fonte |
-| **Jumper de `PS_ON_IN` ao 3,3 V** | mantém o relé fechado sem a CB1, apenas para manutenção | **nunca** em uso normal: anula a proteção |
-
-## 6.2 O que faz o sistema entrar em loop de boot
-
-O sinal precisa subir **antes dos 15–20 s**. Se for elevado por um **serviço systemd**, ele só atua
-depois do Linux subir (~20–30 s na CB1) e o relé corta no meio do boot. Por isso o overlay precisa
-ser um **hog de device tree** com `output-high`, aplicado pelo u-boot — não um serviço tardio.
-
-# 7. Cuidados específicos desta placa
-
-1. **O relé alimenta a carga por padrão** quando a rede é aplicada. Ligar a chave geral energiza a
-   impressora e a CB1 inicia o boot; se o sinal não subir em 15–20 s, o módulo corta tudo e o ciclo
-   recomeça. **Meça o tempo de boot antes de deixar a máquina sozinha.**
-2. **Chave geral continua sendo o corte definitivo.** O relé não substitui a chave nem o fusível.
-3. **Isolamento**: o módulo trabalha com 220 V expostos. Use caixa isolada.
-4. **Não ligue o `PS_ON` da Manta no relé** — é a opção A, descartada.
-5. O `SC_DET` deve ser ligado à linha de 5 V **da própria Manta**, não ao 24 V.
-6. **Host morto = impressora desligada em 15–20 s.** É uma boa proteção, mas impede diagnóstico com
-   a máquina energizada; para manutenção use o jumper do item 6.1 com consciência do risco.
-
-# 8. Plano de teste (antes de confiar no painel)
+# 8. Plano de teste
 
 | # | Teste | Critério |
 |---|---|---|
-| 1 | Continuidade e isolação, tudo desligado | nenhum curto entre L, N e terra |
-| 2 | Ligar com a chave geral, sem a CB1 | relé liga a fonte por padrão e corta após 15–20 s |
-| 3 | Medir `PS_ON_IN` com a CB1 ligada | 3,3 V (alto) |
-| 4 | Cronometrar do AC até o sinal alto | **abaixo de 15 s** |
-| 5 | `SHUTDOWN_HOST` pelo Fluidd | CB1 desliga; AC cai 15–20 s depois |
-| 6 | Religar ciclando a chave geral | sistema sobe sem intervenção |
-| 7 | Repetir 5 e 6 três vezes | comportamento consistente |
-| 8 | Simular `SC_DET` (desconectar o 5 V) | relé corta a energia |
+| 1 | **Ligar sem o Klipper** (host desligado) e cronometrar | o relé corta em 15–20 s? **Isso decide se há loop de boot** |
+| 2 | Continuidade e isolação, tudo desligado | nenhum curto entre L, N e terra |
+| 3 | Com o sistema ligado: `SET_PIN PIN=ps_on_pin VALUE=0` | relé corta após 15–20 s |
+| 4 | `POWER_OFF` pelo painel | host encerra e a AC cai em 15–20 s |
+| 5 | Religar pela chave geral | sistema sobe sem intervenção |
+| 6 | Repetir 4 e 5 três vezes | comportamento consistente |
+| 7 | Simular `SC_DET` (desconectar 5 V) | relé corta a energia |
 
-# 9. Pendências
+# 9. Se o teste 1 reprovar (loop de boot)
 
-- [ ] Confirmar na serigrafia os nomes dos conectores da unidade recebida
-- [ ] Instalar o overlay (hog) na CB1 e medir o tempo até `PS_ON_IN` ficar alto
-- [ ] Decidir a forma de ligar: ciclar a chave, pulsador ou tomada inteligente
-- [ ] Executar o plano de teste da seção 8 e registrar os tempos
-- [ ] Atualizar o `README` (seção de hardware) e o `00_Estado_Atual` após validação
+Alternativas, em ordem de preferência:
+
+1. **Botão de retenção** em `PS_ON_IN` (pulsador para +5 V) mantido durante o boot da CB1.
+2. **Voltar para a opção B**: overlay de device tree na CB1 elevando o pino em ~2–3 s, com o
+   `PS_ON` da Manta em paralelo ou desligado.
+3. Regravar o MCU do relé com atraso maior (o repositório da BTT tem os pinos de gravação, mas não
+   publica firmware alternativo).
+
+# 10. Pendências
+
+- [ ] Confirmar na serigrafia os nomes dos conectores da unidade
+- [ ] Incluir `power.cfg` no `printer.cfg` e reiniciar
+- [ ] Executar o teste 1 (comportamento sem sinal) e registrar o tempo
+- [ ] Executar os demais testes e registrar
+- [ ] Sincronizar `03_Klipper_Config/` + `MANIFEST`
