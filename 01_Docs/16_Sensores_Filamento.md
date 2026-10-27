@@ -1,144 +1,153 @@
-# Sensores de Fim de Filamento — 2 × IdealForm
+# Sensores de Movimento de Filamento — 2 × IdealForm
 
 **Documento:** 16_Sensores_Filamento.md
-**Versão:** 1.0.0
+**Versão:** 2.0.0
 **Data:** 2026-10-27
-**Objetivo:** instalar um sensor de fim de filamento por extrusora, com parada automática apenas
-quando a ferramenta ativa ficar sem material.
+**Objetivo:** instalar um sensor de **movimento** por extrusora, detectando fim de filamento **e**
+travamento, com parada apenas quando a ferramenta ativa é a afetada.
+
+> **Correção da v1.0:** o sensor não é uma chave de fim de filamento. Ele emite **pulsos** conforme
+> o filamento avança. No Klipper isso é `[filament_motion_sensor]`, não `[filament_switch_sensor]`.
 
 ---
 
-# 1. Pinos na Manta M8P V2.0
+# 1. Por que o sensor de pulsos é melhor aqui
 
-A configuração de referência da própria BIGTREETECH reserva dois conectores para sensor de
-filamento, e ambos estão **livres** na configuração atual da máquina:
+| Situação | Chave de fim | **Sensor de movimento** |
+|---|---|---|
+| Filamento acabou | detecta | detecta |
+| Filamento travou no carretel | **não** | detecta |
+| Roda de tração moeu o filamento | **não** | detecta |
+| Bico entupido e extrusora patinando | **não** | detecta |
 
-| Sensor | Pino do MCU | Conector na placa (referência BTT) | Usado hoje por |
-|---|---|---|---|
-| T0 (extrusora 0) | **PF0** | End-Stop 5 | — livre |
-| T1 (extrusora 1) | **PC15** | End-Stop 6 | — livre |
+Com PETG em impressões de várias horas, o caso mais frequente não é o carretel acabar — é o
+filamento parar de avançar com o carretel cheio. A chave não vê isso; o sensor de pulsos vê.
+
+# 2. Pinos na Manta M8P V2.0
+
+Conectores reservados pela BIGTREETECH para sensor de filamento, **livres** na configuração atual
+(verificado: nenhuma ocorrência de `PF0` ou `PC15` em `03_Klipper_Config/`):
+
+| Sensor | Pino do MCU | Conector (referência BTT) |
+|---|---|---|
+| T0 (extrusora 0) | **PF0** | End-Stop 5 |
+| T1 (extrusora 1) | **PC15** | End-Stop 6 |
 
 Referência: [`06_Firmware/generic-bigtreetech-manta-m8p-V2_0.cfg`](../06_Firmware/generic-bigtreetech-manta-m8p-V2_0.cfg)
 linhas 77–92.
 
-Entradas de fim de curso da Manta: **3,3 V**, com pull-up interno disponível (`^`).
+# 3. Diagrama
 
-# 2. Diagrama
+![Sensores de movimento na Manta](../08_Fotos/Filament_Sensors_Manta.png)
 
-![Sensores de filamento na Manta](../08_Fotos/Filament_Sensors_Manta.png)
+# 4. Ligação elétrica
 
-# 3. Duas variantes de sensor — descubra qual é o seu antes de ligar
-
-## 3.1 Variante A — contato seco (2 fios)
-
-É o caso mais comum e o mais seguro: o sensor é só um interruptor.
-
-| Fio do sensor | Ligar em |
-|---|---|
-| S (sinal) | `PF0` (T0) ou `PC15` (T1) |
-| G (terra) | `GND` |
-| V | **não conectar** |
-
-No Klipper, use o pull-up: `switch_pin: ^PF0`.
-
-## 3.2 Variante B — alimentado (3 fios)
+O sensor tem **3 fios**:
 
 | Fio | Ligar em | Observação |
 |---|---|---|
-| V | **5 V** da Manta | nunca 24 V |
-| G | `GND` | |
-| S | `PF0` / `PC15` | **medir antes** |
+| **V** | **5 V** da Manta | não usar 24 V |
+| **G** | **GND** da Manta | mesmo terra dos dois sensores |
+| **S** | `PF0` (T0) ou `PC15` (T1) | sinal pulsado |
 
-**Procedimento obrigatório antes de conectar o sinal:**
+## 4.1 Medição obrigatória antes de conectar S
 
-1. Alimente o sensor com 5 V e GND.
-2. Meça S em relação ao GND, com filamento presente e ausente:
-   - **0 V / 3,3 V** → compatível, ligar direto;
-   - **0 V / 5 V** → usar divisor resistivo ou optoacoplador;
-   - **24 V** ou saída NPN de 24 V → **obrigatório optoacoplador**.
-3. Confirme também se o sensor é **NA** (fecha com filamento) ou **NF**. Se a lógica sair invertida,
-   o `switch_pin` recebe `!` — por exemplo `^!PF0`.
+1. Alimente o sensor com 5 V e GND, **sem** ligar o fio S na placa.
+2. Com o multímetro entre S e GND, puxe o filamento devagar:
+   - **0 / 3,3 V** → ligar direto;
+   - **0 / 5 V** → divisor resistivo ou level shifter;
+   - **0 / 24 V** → optoacoplador obrigatório.
+3. Confirme que há pulsos reais ao mover o filamento (a tensão deve alternar). Sensor parado ou
+   sem pulsos = defeito ou tensão insuficiente.
 
-> A Manta trabalha em 3,3 V. Aplicar 5 V ou 24 V no pino de sinal o destrói.
+> A entrada da Manta é de 3,3 V. Aplicar 5 V ou 24 V no pino de sinal o destrói.
 
-# 4. Configuração no Klipper
+## 4.2 Intervalo entre pulsos — define o `detection_length`
 
-Criar `qidi_xpro/filament.cfg` e incluí-lo no `printer.cfg`:
+O Klipper dispara quando o filamento avança **X mm sem nenhum pulso**. Portanto:
+
+```
+detection_length  >  distância entre dois pulsos consecutivos
+```
+
+Meça assim: marque 100 mm de filamento, puxe devagar e conte quantas vezes o sinal alterna. Se
+houver, por exemplo, um pulso a cada 10 mm, use `detection_length: 15`. Se o sensor der vários
+pulsos por milímetro (roda dentada), `7.0` é folgado.
+
+Comece com **10.0** e reduza depois de confirmar que não há falso disparo.
+
+# 5. Configuração no Klipper
+
+Criar `qidi_xpro/filament.cfg` e incluir no `printer.cfg` (`[include qidi_xpro/filament.cfg]`):
 
 ```ini
 ########################################
-# Sensores de fim de filamento
+# Sensores de movimento de filamento
 ########################################
 
-[filament_switch_sensor fil_t0]
+[filament_motion_sensor fil_t0]
 switch_pin: ^PF0
-pause_on_runout: False
+extruder: extruder
+detection_length: 10.0
+pause_on_runout: True
 event_delay: 3.0
+pause_delay: 0.5
 runout_gcode:
-    {% if printer.toolhead.extruder == 'extruder' %}
-        M118 Fim de filamento no T0
-        PAUSE
-    {% else %}
-        M118 Sensor do T0 sem filamento (ferramenta inativa)
-    {% endif %}
+    M118 Fim ou travamento de filamento no T0
 insert_gcode:
-    {% if printer.toolhead.extruder == 'extruder' and printer.pause_resume.is_paused %}
-        M118 Filamento reposto no T0
-        RESUME
-    {% endif %}
+    M118 Filamento reposto no T0
 
-[filament_switch_sensor fil_t1]
+[filament_motion_sensor fil_t1]
 switch_pin: ^PC15
-pause_on_runout: False
+extruder: extruder1
+detection_length: 10.0
+pause_on_runout: True
 event_delay: 3.0
+pause_delay: 0.5
 runout_gcode:
-    {% if printer.toolhead.extruder == 'extruder1' %}
-        M118 Fim de filamento no T1
-        PAUSE
-    {% else %}
-        M118 Sensor do T1 sem filamento (ferramenta inativa)
-    {% endif %}
+    M118 Fim ou travamento de filamento no T1
 insert_gcode:
-    {% if printer.toolhead.extruder == 'extruder1' and printer.pause_resume.is_paused %}
-        M118 Filamento reposto no T1
-        RESUME
-    {% endif %}
+    M118 Filamento reposto no T1
 ```
 
-## Por que `pause_on_runout: False`
+## Por que a opção `extruder:` resolve o problema das duas ferramentas
 
-Com duas extrusoras, a pausa automática do Klipper dispara mesmo quando o sensor da ferramenta
-**inativa** abre — o que interromperia uma impressão boa por causa do bico que nem está em uso.
-Desligando a pausa automática e tratando no `runout_gcode`, só há pausa quando a ferramenta
-**ativa** é a que ficou sem filamento.
+O `[filament_motion_sensor]` avalia o sensor **somente enquanto aquela extrusora está extrudando**.
+Com `extruder: extruder` e `extruder: extruder1` nos respectivos sensores:
 
-O `insert_gcode` só retoma se o trabalho estiver realmente pausado, para não gerar erro de
-`RESUME` fora de pausa.
+- T0 imprimindo e T1 sem filamento → **não pausa**;
+- T1 entra em uso e não tem filamento → pausa imediatamente;
+- T0 patinando (entupimento) → pausa.
 
-# 5. Teste
+Isso elimina a lógica manual que a versão 1.0 deste documento usava.
 
-| # | Comando / ação | Esperado |
+# 6. Teste
+
+| # | Ação | Esperado |
 |---|---|---|
-| 1 | `QUERY_FILAMENT_SENSOR SENSOR=fil_t0` | `filament detected` com filamento |
-| 2 | Retirar o filamento do T0 | `runout` registrado no console |
-| 3 | `QUERY_FILAMENT_SENSOR SENSOR=fil_t0` | `filament not detected` |
+| 1 | `QUERY_FILAMENT_SENSOR SENSOR=fil_t0` | sensor detectado / state |
+| 2 | Puxar filamento devagar pelo T0 | estado alterna sem pausar |
+| 3 | Segurar o filamento e mandar extrudar 20 mm | pausa com mensagem do T0 |
 | 4 | Repetir 1–3 no `fil_t1` | idem |
-| 5 | Com um trabalho pausado, repor o filamento | `RESUME` automático |
-| 6 | Imprimir com T0 e retirar o filamento do **T1** | **não** deve pausar; mensagem de inativa |
+| 5 | Imprimir no T0 e remover o filamento do **T1** | **não** pausa |
+| 6 | Durante a impressão no T0, segurar o filamento | pausa em até `detection_length` mm |
+| 7 | Repor e mandar `RESUME` | retoma sem erro |
 
-# 6. Cuidados
+# 7. Cuidados
 
-1. **Meça o sinal antes de conectar** — o item 3.2 não é opcional.
-2. **Não compartilhe o GND de forma errada**: o GND do sensor deve ser o mesmo da Manta.
-3. **Roteamento**: os fios do sensor passam pela região dos cabos dos hotends; prender junto ao
-   feixe existente e manter longe do cabo do termistor (ruído).
-4. **`event_delay: 3.0`** evita falso disparo quando o filamento oscila no sensor.
-5. Se a leitura sair invertida, trocar `^PF0` por `^!PF0` (e o equivalente no T1).
+1. **Meça a tensão de S antes de conectar** (item 4.1). Não é opcional.
+2. **GND comum** entre os dois sensores e a Manta.
+3. **Roteamento**: passar os fios junto ao feixe dos hotends, longe do cabo do termistor. O sinal é
+   pulsado e de alta impedância com pull-up; ruído gera falso disparo.
+4. **`detection_length` calibrado** ao intervalo real entre pulsos (item 4.2) — valor pequeno demais
+   gera pausas falsas em impressões longas.
+5. Os dois sensores são instalados **antes** da extrusora, um em cada caminho de filamento; com a
+   máquina desmontada é o momento de definir a fixação mecânica.
 
-# 7. Pendências
+# 8. Pendências
 
-- [ ] Confirmar se o IdealForm tem 2 ou 3 fios e qual a tensão de saída
-- [ ] Definir o `switch_pin` com ou sem `!` conforme a lógica do sensor
-- [ ] Instalar `qidi_xpro/filament.cfg` e incluir no `printer.cfg`
-- [ ] Executar o teste da seção 5 e registrar
-- [ ] Sincronizar o espelho `03_Klipper_Config/` e o `MANIFEST`
+- [ ] Confirmar a tensão de saída do IdealForm e o intervalo entre pulsos
+- [ ] Definir o `detection_length` a partir da medição
+- [ ] Instalar `qidi_xpro/filament.cfg`, incluir no `printer.cfg` e reiniciar
+- [ ] Executar o teste da seção 6 e registrar
+- [ ] Sincronizar `03_Klipper_Config/` + `MANIFEST` e atualizar o `README`
