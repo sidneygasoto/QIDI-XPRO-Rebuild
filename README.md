@@ -172,6 +172,7 @@ criados aparecem como pendentes.
 | 12_Referencias.md | Datasheets e referências | ⏳ |
 | 14_Esquema_Eletrico.md | Esquemas elétricos | ⏳ |
 | 15_Relay_Energia.md | Relé de energia BTT V1.2 — ligação e teste | ✅ |
+| 16_Sensores_Filamento.md | Sensores de fim de filamento — ligação e configuração | ✅ |
 
 A configuração operacional **não** fica em `01_Docs/`: ela é versionada em
 [`03_Klipper_Config/`](03_Klipper_Config/README.md), espelho da CB1.
