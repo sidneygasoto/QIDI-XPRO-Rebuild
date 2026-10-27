@@ -142,8 +142,11 @@ Alternativas, em ordem de preferência:
 
 # 10. Pendências
 
+- [x] **Implantado em 2026-10-27**: `power.cfg` incluído no `printer.cfg`, Klipper reiniciado,
+      `output_pin ps_on_pin` (PD14) respondendo e comutando 1 → 0 → 1. Espelho com 16 arquivos,
+      `MANIFEST` 16/16.
 - [ ] Confirmar na serigrafia os nomes dos conectores da unidade
-- [ ] Incluir `power.cfg` no `printer.cfg` e reiniciar
-- [ ] Executar o teste 1 (comportamento sem sinal) e registrar o tempo
-- [ ] Executar os demais testes e registrar
-- [ ] Sincronizar `03_Klipper_Config/` + `MANIFEST`
+- [ ] Ligar fisicamente o relé e executar o teste 1 (comportamento sem sinal) — decide se há loop
+      de boot
+- [ ] Executar os demais testes e registrar os tempos
+- [ ] Atualizar `README` e `00_Estado_Atual` após validação
