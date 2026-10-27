@@ -1,0 +1,54 @@
+/*****************************************************************************
+ * BTT Relay V1.2 — retencao do PS_ON_IN desde o boot
+ *
+ * Plataforma : BIGTREETECH CB1 v2.2 (Allwinner H616) em Manta M8P V2.0
+ * Kernel     : 7.0.2-vendor-sunxi64 / Armbian 26.5.1 (trixie)
+ *
+ * O que faz
+ *   Declara PC8 como gpio-hog em nivel alto. O kernel aplica o estado durante
+ *   a inicializacao do pinctrl (~1 s apos o kernel iniciar), sem depender de
+ *   Klipper, systemd ou qualquer processo de usuarios.
+ *
+ * Por que
+ *   O BTT Relay V1.2 desliga a carga se PS_ON_IN nao estiver alto dentro de
+ *   15-20 s apos a rede ser aplicada. O Klipper so eleva o PD14 da Manta em
+ *   ~30-40 s, o que causava loop de boot. Com o hog, o sinal sobe em ~5 s.
+ *
+ * Mapeamento confirmado por medicao (2026-10-27)
+ *   PC8 = banco C, pino 8 -> linha 72 do gpiochip0 (300b000.pinctrl)
+ *   -> H1 pino 40 (GPIO21) do conector de 40 vias da Manta
+ *   Medido no pino 40: onda 0/3,3 V em 50% de duty enquanto a linha era
+ *   alternada por software; 1,6 V de media.
+ *
+ * Instalacao
+ *   armbian-add-overlay btt-relay.dts
+ *   reboot
+ *
+ * Verificacao
+ *   cat /sys/kernel/debug/gpio | grep btt-relay
+ *   # esperado: gpio-72 ( |btt-relay ) out hi
+ *
+ * Reversao
+ *   cp /boot/armbianEnv.txt.bak-relay /boot/armbianEnv.txt
+ *   rm /boot/overlay-user/btt-relay.dtbo
+ *   reboot
+ *****************************************************************************/
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "allwinner,sun50i-h616";
+
+	fragment@0 {
+		target = <&pio>;
+		__overlay__ {
+			btt_relay_hog: btt-relay-hog {
+				gpio-hog;
+				gpios = <2 8 0>;	/* banco 2 = C, pino 8, ativo alto */
+				output-high;
+				line-name = "btt-relay";
+			};
+		};
+	};
+};
