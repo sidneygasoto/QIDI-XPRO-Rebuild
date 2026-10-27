@@ -99,33 +99,63 @@ provider: systemd_dbus
 shutdown_action: poweroff
 ```
 
-# 6. Cuidados específicos desta placa
+# 6. Como ligar a impressora
 
-1. **O relé alimenta a carga por padrão** quando a rede é aplicada (característica documentada da
-   V1.2). Na prática: ligar a chave geral energiza a impressora e a CB1 inicia o boot; se o sinal
-   não subir em 15–20 s, o módulo corta tudo e o ciclo recomeça. **Teste o tempo de boot antes de
-   deixar a máquina sozinha.**
+A placa **não tem botão de ligar**. O manual só descreve `P5.4` como pino de reset/gravação de
+firmware do MCU. A sequência real de partida é:
+
+1. aplicar rede ao módulo → o relé **fecha por padrão** e alimenta a fonte;
+2. a CB1 inicia o boot e o overlay de device tree eleva `PS_ON_IN` (~2–3 s, via u-boot);
+3. com o sinal alto, o relé **fica retido**;
+4. se o sinal não subir em **15–20 s**, o relé abre e a impressora desliga sozinha.
+
+> **Consequência prática:** após desligar pelo painel, a **chave geral continua ligada** e o relé
+> está aberto. Para religar é preciso **ciclar a rede** (chave geral desligar/ligar) ou instalar um
+> botão.
+
+## 6.1 Opções de botão de ligar
+
+| Opção | Como funciona | Cuidado |
+|---|---|---|
+| **Pulsador NA de rede em série com a fase** | um toque aplica AC, a CB1 arranca e retém — comportamento tipo ATX | componente e fiação isolados para 220 V, em caixa fechada |
+| **Tomada inteligente / interruptor de parede** | liga remotamente, sem tocar na máquina | suportar a corrente de pico da fonte |
+| **Jumper de `PS_ON_IN` ao 3,3 V** | mantém o relé fechado sem a CB1, apenas para manutenção | **nunca** em uso normal: anula a proteção |
+
+## 6.2 O que faz o sistema entrar em loop de boot
+
+O sinal precisa subir **antes dos 15–20 s**. Se for elevado por um **serviço systemd**, ele só atua
+depois do Linux subir (~20–30 s na CB1) e o relé corta no meio do boot. Por isso o overlay precisa
+ser um **hog de device tree** com `output-high`, aplicado pelo u-boot — não um serviço tardio.
+
+# 7. Cuidados específicos desta placa
+
+1. **O relé alimenta a carga por padrão** quando a rede é aplicada. Ligar a chave geral energiza a
+   impressora e a CB1 inicia o boot; se o sinal não subir em 15–20 s, o módulo corta tudo e o ciclo
+   recomeça. **Meça o tempo de boot antes de deixar a máquina sozinha.**
 2. **Chave geral continua sendo o corte definitivo.** O relé não substitui a chave nem o fusível.
 3. **Isolamento**: o módulo trabalha com 220 V expostos. Use caixa isolada.
 4. **Não ligue o `PS_ON` da Manta no relé** — é a opção A, descartada.
 5. O `SC_DET` deve ser ligado à linha de 5 V **da própria Manta**, não ao 24 V.
+6. **Host morto = impressora desligada em 15–20 s.** É uma boa proteção, mas impede diagnóstico com
+   a máquina energizada; para manutenção use o jumper do item 6.1 com consciência do risco.
 
-# 7. Plano de teste (antes de confiar no painel)
+# 8. Plano de teste (antes de confiar no painel)
 
 | # | Teste | Critério |
 |---|---|---|
 | 1 | Continuidade e isolação, tudo desligado | nenhum curto entre L, N e terra |
-| 2 | Ligar com a chave geral, sem a CB1 | relé liga a fonte por padrão |
+| 2 | Ligar com a chave geral, sem a CB1 | relé liga a fonte por padrão e corta após 15–20 s |
 | 3 | Medir `PS_ON_IN` com a CB1 ligada | 3,3 V (alto) |
-| 4 | Cronometrar o boot | linha alta antes de 15 s |
+| 4 | Cronometrar do AC até o sinal alto | **abaixo de 15 s** |
 | 5 | `SHUTDOWN_HOST` pelo Fluidd | CB1 desliga; AC cai 15–20 s depois |
-| 6 | Religar pela chave geral | sistema sobe sem intervenção |
+| 6 | Religar ciclando a chave geral | sistema sobe sem intervenção |
 | 7 | Repetir 5 e 6 três vezes | comportamento consistente |
 | 8 | Simular `SC_DET` (desconectar o 5 V) | relé corta a energia |
 
-# 8. Pendências
+# 9. Pendências
 
 - [ ] Confirmar na serigrafia os nomes dos conectores da unidade recebida
-- [ ] Instalar overlay + serviço na CB1 e medir o tempo de boot
-- [ ] Executar o plano de teste da seção 7 e registrar os tempos
+- [ ] Instalar o overlay (hog) na CB1 e medir o tempo até `PS_ON_IN` ficar alto
+- [ ] Decidir a forma de ligar: ciclar a chave, pulsador ou tomada inteligente
+- [ ] Executar o plano de teste da seção 8 e registrar os tempos
 - [ ] Atualizar o `README` (seção de hardware) e o `00_Estado_Atual` após validação
