@@ -60,18 +60,33 @@ ou `PC15` em `03_Klipper_Config/`).
 | **G** | 2 — G | terra comum |
 | **V** | 3 — **+5V** | alimentação do sensor |
 
-## 4.1 Nível do sinal
+## 4.1 Condicionamento adotado — divisor 1,2 k / 2 k
 
-O manual do fabricante mostra o exemplo com `switch_pin: PA1` (sem pull-up). Na Manta, usar
-`^PF0` / `^PC15` é seguro em qualquer caso:
+O sensor (`SN74LVC1G14`, saída **push-pull de 5 V**) não pode ir direto ao pino. Adotado:
 
-- se a saída do sensor for **coletor aberto**, o pull-up interno (para 3,3 V) define o nível alto —
-  e a entrada nunca vê 5 V;
-- se for **push-pull de 5 V**, o pull-up não ajuda, e é preciso um divisor (ex.: 10 kΩ / 20 kΩ) ou
-  um level shifter.
+```
+S do sensor ──[ 1,2 k ]──┬──> pino da Manta (PF0 / PC15)
+                         │
+                      [ 2 k ]
+                         │
+                        GND
+```
 
-**Antes de fechar a caixa**, meça com o multímetro no pino S enquanto gira a roda: se o nível alto
-passar de 3,5 V, coloque o condicionamento. A entrada da Manta é de 3,3 V e não tolera 5 V.
+A rede da própria Manta contribui com **10 kΩ de pull-up para 3,3 V + 1 kΩ em série + 100 nF para
+GND** em cada entrada de fim de curso (R21/R25, R26/R27, R28/R30, R36/R38, R39/R40, R43/R46 e
+C17/C18/C22/C25/C27/C29).
+
+**Medido no pino da Manta:** **3,1 V** (nível 1) e **0,2 V** (nível 0).
+
+| Nível | Medido | Limite do STM32H723 | Margem |
+|---|---|---|---|
+| Alto | 3,1 V | V_IH ≥ 0,7 × VDD = **2,31 V** | 0,8 V |
+| Baixo | 0,2 V | V_IL ≤ 0,3 × VDD = **0,99 V** | 0,8 V |
+
+> Um diodo 1N4148 em série foi descartado: com o 1 kΩ da placa, o nível baixo subiria para ~0,8 V
+> (sem o resistor externo) ou ~1,0 V (com ele), encostando no limite de V_IL.
+
+O `^` no `switch_pin` continua correto: o pull-up de 10 kΩ já existe na placa, e o `^` é inofensivo.
 
 ## 4.2 `detection_length`
 
@@ -129,30 +144,42 @@ Com `extruder: extruder` e `extruder: extruder1`:
 - T1 entra em uso sem filamento → pausa imediatamente;
 - T0 patinando → pausa.
 
-# 6. Teste
+# 6. Validação (2026-10-28)
 
-| # | Ação | Esperado |
+Método: arquivo [`09_Testes/teste_sensor_filamento.gcode`](../09_Testes/teste_sensor_filamento.gcode)
+— `G28`, vai a Z=50 e extrusa 50 mm no ar (sem sujar a chapa), ~30 s.
+
+## 6.1 Comportamento do Klipper que precisa ser conhecido
+
+Duas condições, ambas confirmadas no código instalado:
+
+1. **O sensor só é avaliado durante impressão.** `filament_motion_sensor.py` registra
+   `idle_timeout:printing` (liga o timer) e `idle_timeout:ready`/`idle` (desliga). Em `standby` o
+   timer vai para `NEVER` — **testar com `G1 E50` fora de impressão não prova nada**.
+2. **O runout exige transição de estado.** `RunoutHelper` inicializa `filament_present = False` e
+   `note_filament_present` retorna sem agir se o estado não mudou. Logo, é preciso que haja pulsos
+   (estado vai a `True`) para que a ausência deles possa disparar o runout.
+
+| Teste | Condição | Resultado |
 |---|---|---|
-| 1 | `QUERY_FILAMENT_SENSOR SENSOR=fil_t0` | sensor presente |
-| 2 | Puxar filamento devagar pelo T0 | estado alterna, sem pausar |
-| 3 | Segurar o filamento e extrudar 20 mm | pausa com mensagem do T0 |
-| 4 | Repetir no `fil_t1` | idem |
-| 5 | Imprimir no T0 e remover filamento do **T1** | **não** pausa |
-| 6 | Durante impressão no T0, segurar o filamento | pausa em ~12 mm |
-| 7 | Repor e `RESUME` | retoma sem erro |
+| **Positivo** | E0 conectado, filamento no local | 50 mm extrudados durante impressão, **sem pausa**, `fil_t0` permaneceu `True` |
+| **Negativo** | E0 desconectado (sem pulsos) | `runout event detected`, impressão **pausada**, `fil_t0 = False` |
+
+A pausa do teste negativo ocorreu a 89,8 % do arquivo — correto: os 12 mm de detecção só são
+contados a partir do momento em que o extrusor anda, e o `G1 E50` era a última linha.
 
 # 7. Cuidados
 
-1. **Nível do sinal** (item 4.1) — medir antes de fechar a máquina.
+1. **Nível do sinal** — 3,1 V / 0,2 V medidos; refazer a medida se trocar o divisor.
 2. **GND comum** entre os dois sensores e a Manta (o próprio conector fornece).
-3. **Roteamento**: junto ao feixe dos hotends, longe do cabo do termistor — sinal pulsado de alta
-   impedância sofre com ruído.
+3. **Roteamento**: junto ao feixe dos hotends, longe do cabo do termistor.
 4. **Sentido do filamento**: respeitar entrada/saída marcadas; roda patinando = sensor cego.
 5. **`detection_length` calibrado**: 12 mm para 2,35 mm/pulso (5 pulsos).
 
 # 8. Pendências
 
-- [ ] Medir o nível alto do pulso no pino S (confirmar ≤ 3,3 V)
-- [ ] Instalar `qidi_xpro/filament.cfg` e incluir no `printer.cfg`
-- [ ] Executar o teste da seção 6
-- [ ] Sincronizar `03_Klipper_Config/` + `MANIFEST` e atualizar o `README`
+- [x] Nível do pulso medido: **3,1 V** (alto) e **0,2 V** (baixo)
+- [x] `qidi_xpro/filament.cfg` instalado e incluído no `printer.cfg` (`MANIFEST` 17/17)
+- [x] E0 validado — testes positivo e negativo
+- [ ] Validar **E1 (T1)** — exige aquecer o T1 e carregar filamento nele
+- [ ] Teste de troca de ferramenta: T0 imprimindo com T1 sem filamento **não** deve pausar
