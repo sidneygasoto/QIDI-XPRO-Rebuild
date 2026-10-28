@@ -164,6 +164,14 @@ Durante a gravação o `dfu-util` reporta `Error during download get_status` **d
 O `INITIAL_PINS` eleva PD14 no boot do MCU, **antes** de qualquer comunicação com o host — é o que
 permite ao relé ficar retido sem o pino 40 da CB1.
 
+## Prova do `INITIAL_PINS` (2026-10-28)
+
+Com o **Klipper parado** (MCU energizado e enumerado, host sem controle), mediu-se **3,3 V** entre o
+pino de sinal do `PS-ON` e GND. O pino estava alto porque o próprio MCU o elevou na partida.
+
+O overlay `btt-relay` da CB1 foi então **removido** (`armbianEnv.txt` restaurado, `.dtbo` apagado):
+a linha PC8 voltou a ficar livre e o relé passou a depender de **um único fio** no `PS-ON`.
+
 # 12. Pendências
 
 - [x] **Implantado em 2026-10-27**: `power.cfg` incluído no `printer.cfg`, Klipper reiniciado,
