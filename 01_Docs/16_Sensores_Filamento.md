@@ -162,11 +162,16 @@ Duas condições, ambas confirmadas no código instalado:
 
 | Teste | Condição | Resultado |
 |---|---|---|
-| **Positivo** | E0 conectado, filamento no local | 50 mm extrudados durante impressão, **sem pausa**, `fil_t0` permaneceu `True` |
-| **Negativo** | E0 desconectado (sem pulsos) | `runout event detected`, impressão **pausada**, `fil_t0 = False` |
+| **Positivo T0** | E0 conectado, filamento no local | 50 mm extrudados durante impressão, **sem pausa**, `fil_t0` permaneceu `True` |
+| **Negativo T0** | E0 desconectado (sem pulsos) | `runout event detected`, impressão **pausada**, `fil_t0 = False` |
+| **T1** | sensor ligado, sinal presente na placa | `runout event detected` e pausa — porém **sem pulsos**, porque o filamento não era tracionado pelo extrusor (defeito mecânico no tubo PTFE, não elétrico) |
 
 A pausa do teste negativo ocorreu a 89,8 % do arquivo — correto: os 12 mm de detecção só são
 contados a partir do momento em que o extrusor anda, e o `G1 E50` era a última linha.
+
+**Latência da pausa:** o `PAUSE` é executado só depois de escoar a fila de movimentos já enviada ao
+MCU. Com ~18 s de buffer no MCU, a pausa apareceu ~20 s após o evento — não é atraso da detecção,
+é a fila esvaziando.
 
 # 7. Cuidados
 
