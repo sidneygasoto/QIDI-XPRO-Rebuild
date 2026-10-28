@@ -140,7 +140,31 @@ Alternativas, em ordem de preferência:
 3. Regravar o MCU do relé com atraso maior (o repositório da BTT tem os pinos de gravação, mas não
    publica firmware alternativo).
 
-# 10. Pendências
+# 11. Gravação do firmware do MCU (2026-10-28)
+
+Duas vias documentadas no manual da Manta. A primeira **não funcionou**, a segunda sim:
+
+| Via | Procedimento | Resultado |
+|---|---|---|
+| Cartão SD | `klipper.bin` → `firmware.bin` na raiz do SD (FAT), slot MCU-Card, reset ou religar | **não gravou.** Cartão verificado: FAT, MBR, 1,87 GB, arquivo íntegro (SHA-256 e cabeçalho corretos). O arquivo não foi renomeado para `FIRMWARE.CUR`, ou seja, o bootloader não o abriu |
+| **DFU (usada)** | `make flash FLASH_DEVICE=/dev/serial/by-id/usb-Klipper_stm32h723xx_…` | **gravou.** O firmware do Klipper tem `dfu_reboot` compilado e reinicia o MCU no bootloader DFU |
+
+Durante a gravação o `dfu-util` reporta `Error during download get_status` **depois** de
+`File downloaded successfully` — é benigno: o MCU sai do modo DFU imediatamente após o download.
+
+## Resultado
+
+| Item | Valor |
+|---|---|
+| Versão no MCU | `metrology-v0.5.0-2-gf5342a1ce-dirty-20261028_161700-bigtreetech-cb1` |
+| Binário | 44.684 bytes, SHA-256 `62be0d93…e5259031` |
+| Única diferença de build | `CONFIG_INITIAL_PINS="PD14"` (o resto do `.config` idêntico) |
+| Rollback | `06_Firmware/klipper.bin` anterior (44.620 B, `6a527307…`) |
+
+O `INITIAL_PINS` eleva PD14 no boot do MCU, **antes** de qualquer comunicação com o host — é o que
+permite ao relé ficar retido sem o pino 40 da CB1.
+
+# 12. Pendências
 
 - [x] **Implantado em 2026-10-27**: `power.cfg` incluído no `printer.cfg`, Klipper reiniciado,
       `output_pin ps_on_pin` (PD14) respondendo e comutando 1 → 0 → 1. Espelho com 16 arquivos,
