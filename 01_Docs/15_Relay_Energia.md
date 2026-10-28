@@ -181,9 +181,13 @@ a linha PC8 voltou a ficar livre e o relé passou a depender de **um único fio*
       Mapeamento confirmado por medição: PC8 → H1 pino 40 (GPIO21). Sinal sobe em ~5 s, contra
       janela de 15–20 s do relé. Ver [17_Relay_Firmware.md](17_Relay_Firmware.md) e
       [`06_Firmware/relay/btt-relay.dts`](../06_Firmware/relay/btt-relay.dts).
-- [ ] **Decisão pendente (2026-10-28)**: manter a opção A (pino 40, dois fios) ou ir para a opção B
-      (`PS_ON` com um fio, exigindo firmware do relé com janela maior). O usuário vai analisar antes
-      de decidir. Nada a fazer até a decisão.
+- [x] **Decisão (2026-10-28)**: **opção D adotada** — `PS_ON` com um fio só, viabilizado por
+      `CONFIG_INITIAL_PINS="PD14"` no firmware do MCU. Não foi preciso tocar no firmware do relé
+      (opção B) nem manter o overlay da CB1 (opção A, removida).
+- [x] **Testes 1 e 2 aprovados (2026-10-28)**: ciclo de energia pela chave geral — o relé **não
+      corta** e o sistema sobe normalmente; `POWER_OFF` — host encerra e o relé corta a AC em
+      15–20 s.
 - [ ] Confirmar na serigrafia os nomes dos conectores da unidade
-- [ ] Com o relé no circuito AC: testar o boot e o `POWER_OFF`, registrando os tempos
 - [ ] Atualizar `README` e `00_Estado_Atual` após validação
+- [ ] Caracterização de bancada do relé e eventual firmware próprio: **não necessários** com a
+      opção D (mantidos em [17_Relay_Firmware.md](17_Relay_Firmware.md) como referência)
