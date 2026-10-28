@@ -145,8 +145,13 @@ Alternativas, em ordem de preferência:
 - [x] **Implantado em 2026-10-27**: `power.cfg` incluído no `printer.cfg`, Klipper reiniciado,
       `output_pin ps_on_pin` (PD14) respondendo e comutando 1 → 0 → 1. Espelho com 16 arquivos,
       `MANIFEST` 16/16.
+- [x] **Overlay da CB1 (2026-10-27)**: `btt-relay` instala PC8 (linha 72) em `output-high` no boot.
+      Mapeamento confirmado por medição: PC8 → H1 pino 40 (GPIO21). Sinal sobe em ~5 s, contra
+      janela de 15–20 s do relé. Ver [17_Relay_Firmware.md](17_Relay_Firmware.md) e
+      [`06_Firmware/relay/btt-relay.dts`](../06_Firmware/relay/btt-relay.dts).
+- [ ] **Decisão pendente (2026-10-28)**: manter a opção A (pino 40, dois fios) ou ir para a opção B
+      (`PS_ON` com um fio, exigindo firmware do relé com janela maior). O usuário vai analisar antes
+      de decidir. Nada a fazer até a decisão.
 - [ ] Confirmar na serigrafia os nomes dos conectores da unidade
-- [ ] Ligar fisicamente o relé e executar o teste 1 (comportamento sem sinal) — decide se há loop
-      de boot
-- [ ] Executar os demais testes e registrar os tempos
+- [ ] Com o relé no circuito AC: testar o boot e o `POWER_OFF`, registrando os tempos
 - [ ] Atualizar `README` e `00_Estado_Atual` após validação
