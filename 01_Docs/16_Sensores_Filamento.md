@@ -164,9 +164,15 @@ Duas condições, ambas confirmadas no código instalado:
 |---|---|---|
 | **Positivo T0** | E0 conectado, filamento no local | 50 mm extrudados durante impressão, **sem pausa**, `fil_t0` permaneceu `True` |
 | **Negativo T0** | E0 desconectado (sem pulsos) | `runout event detected`, impressão **pausada**, `fil_t0 = False` |
-| **T1** | sensor ligado, sinal presente na placa | `runout event detected` e pausa — porém **sem pulsos**, porque o filamento não era tracionado pelo extrusor (defeito mecânico no tubo PTFE, não elétrico) |
+| **Positivo T1** | E1 conectado, filamento tracionando (após correção do PTFE) | impressão **concluída 100 %**, nenhuma pausa, `fil_t1 = True` |
+| **Negativo T1** | E1 desconectado | `fil_t1 → False` em ~12 mm; **pausa** 18 s depois (buffer do MCU) |
+| **Convivência** | imprimir no T0 com o **T1 sem filamento** | impressão **concluída**, nenhuma pausa — o sensor da ferramenta inativa não interfere |
 
-A pausa do teste negativo ocorreu a 89,8 % do arquivo — correto: os 12 mm de detecção só são
+**Diagnóstico do T1 (2026-10-31):** o sinal já chegava à placa, mas não havia pulsos porque o
+filamento não era tracionado — defeito mecânico no tubo PTFE, não elétrico. Corrigido o tubo, os
+quatro testes do T1 passaram.
+
+A pausa do teste negativo do T0 ocorreu a 89,8 % do arquivo — correto: os 12 mm de detecção só são
 contados a partir do momento em que o extrusor anda, e o `G1 E50` era a última linha.
 
 **Latência da pausa:** o `PAUSE` é executado só depois de escoar a fila de movimentos já enviada ao
@@ -185,6 +191,7 @@ MCU. Com ~18 s de buffer no MCU, a pausa apareceu ~20 s após o evento — não 
 
 - [x] Nível do pulso medido: **3,1 V** (alto) e **0,2 V** (baixo)
 - [x] `qidi_xpro/filament.cfg` instalado e incluído no `printer.cfg` (`MANIFEST` 17/17)
-- [x] E0 validado — testes positivo e negativo
-- [ ] Validar **E1 (T1)** — exige aquecer o T1 e carregar filamento nele
-- [ ] Teste de troca de ferramenta: T0 imprimindo com T1 sem filamento **não** deve pausar
+- [x] **E0** validado — positivo e negativo
+- [x] **E1** validado — positivo e negativo (após corrigir o tubo PTFE)
+- [x] **Convivência** validada — T0 imprimindo com T1 sem filamento não pausa
+- [ ] Reconectar o `END-STOP 6` (E1) — ficou desconectado do teste negativo
