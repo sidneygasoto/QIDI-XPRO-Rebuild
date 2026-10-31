@@ -135,6 +135,52 @@ su - sidney -c "cd /opt/3dprinter/moonraker-obico && \
 A ferramenta anuncia a impressora na rede local e mostra um **código de vinculação manual**. No app
 do Obico: adicionar impressora → ela aparece na mesma rede ("Link Now"), ou usar o código.
 
+# 4. Vídeo ao vivo × snapshots — decisão (2026-10-31)
+
+**O app do Obico não exibe vídeo ao vivo neste hardware.** Dois bloqueios independentes, ambos
+registrados no log do cliente:
+
+```
+No ffmpeg found, or ffmpeg does NOT support h264_omx/h264_v4l2m2m encoding.
+Janus not found or not configured correctly. Webcam is now streaming in 0.1FPS.
+```
+
+| Bloqueio | Detalhe |
+|---|---|
+| **Janus** (gateway WebRTC) | não está no repositório Debian (`apt-cache policy janus` → nenhum candidato) e não vem no clone do cliente, que procura binários pré-compilados em `bin/janus/precompiled/` |
+| **Encoder H.264 de hardware** | o cliente só aceita `h264_omx`, `h264_v4l2m2m` ou `h264_rkmpp`. O H616 **não tem bloco codificador** — os únicos dispositivos de vídeo são os da câmera |
+
+Resultado: o cliente opera em **0,1 FPS** (um quadro a cada 10 s). A detecção por IA funciona sobre
+esses quadros; o que não existe é vídeo.
+
+**Decisão: opção A — aceitar o modo snapshot no Obico e assistir ao vivo pelo navegador/Fluidd.**
+
+| Onde | O que entrega |
+|---|---|
+| App Obico | quadros a 0,1 FPS para a IA; sem vídeo |
+| `http://192.168.10.126:8080/?action=stream` | **vídeo ao vivo a 30 fps** (mjpg-streamer compatível) |
+| Fluidd | câmera integrada, configurada em `moonraker.conf` |
+
+Alternativa descartada: compilar Janus do fonte **e** alterar o cliente para aceitar `libx264`
+(software). Compilar levaria horas e a codificação por software disputaria CPU com o Klipper — o
+mesmo computador controla os movimentos.
+
+# 5. Câmera no Fluidd
+
+Adicionado ao `moonraker.conf`:
+
+```ini
+[webcam qidi_xpro]
+location: Impressora
+service: mjpegstreamer
+stream_url: http://192.168.10.126:8080/?action=stream
+snapshot_url: http://192.168.10.126:8080/?action=snapshot
+```
+
+Verificação: `curl -s localhost:7125/server/webcams/list` deve retornar o webcam `qidi_xpro` com
+`"enabled": true`. Backup do arquivo: `moonraker.conf.bak-webcam`.
+
+
 Depois de vinculada, o `auth_token` é gravado no `moonraker-obico.cfg`.
 
 # 4. Verificação
