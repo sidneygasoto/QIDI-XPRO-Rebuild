@@ -174,6 +174,7 @@ criados aparecem como pendentes.
 | 15_Relay_Energia.md | Relé de energia BTT V1.2 — ligação e teste | ✅ |
 | 16_Sensores_Filamento.md | Sensores de fim de filamento — ligação e configuração | ✅ |
 | 17_Relay_Firmware.md | Firmware do relé — análise do binário e modificação | ✅ |
+| 18_Obico.md | Câmera (uStreamer) e cliente Obico | ✅ |
 
 A configuração operacional **não** fica em `01_Docs/`: ela é versionada em
 [`03_Klipper_Config/`](03_Klipper_Config/README.md), espelho da CB1.
