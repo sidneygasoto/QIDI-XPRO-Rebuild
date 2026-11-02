@@ -101,7 +101,7 @@ Valor atual em uso: `pressure_advance = 0,0885` (único para as duas extrusoras 
 | Input shaping Y | `ei` 37,2 Hz | 2026-10-31 |
 | Malha 60 °C | 5×7, **−0,657 a −0,185** (amplitude 0,472, média −0,331) | 2026-11-02 |
 | **z_offset PLA** | **0,900** (antes 0,550 / PETG) | 2026-11-02 |
-| Pressure advance | — | pendente |
+| **Pressure advance** | **0,030** (era 0,0885) — cantos retos em 2–4 mm | 2026-11-02 |
 | Fluxo | — | pendente |
 | Temperatura | — | pendente |
 | Retração | — | pendente |
@@ -128,3 +128,4 @@ que saiu perfeita.
 > malha ficam defasados pela mesma quantidade e **precisam ser re-medidos**. Não foi o que fiz de
 > início, e a impressão de confirmação saiu sem adesão — o erro de 0,35 voltou embutido na malha.
 > Depois de re-medir, a média da malha deslocou-se exatamente 0,331 mm, confirmando o diagnóstico.
+
