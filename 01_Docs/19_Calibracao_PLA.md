@@ -99,10 +99,32 @@ Valor atual em uso: `pressure_advance = 0,0885` (único para as duas extrusoras 
 |---|---|---|
 | Input shaping X | `3hump_ei` 67,2 Hz | 2026-10-31 |
 | Input shaping Y | `ei` 37,2 Hz | 2026-10-31 |
-| Malha 60 °C | — | pendente |
-| z_offset PLA | — | pendente |
+| Malha 60 °C | 5×7, **−0,657 a −0,185** (amplitude 0,472, média −0,331) | 2026-11-02 |
+| **z_offset PLA** | **0,900** (antes 0,550 / PETG) | 2026-11-02 |
 | Pressure advance | — | pendente |
 | Fluxo | — | pendente |
 | Temperatura | — | pendente |
 | Retração | — | pendente |
 | Vazão máxima | — | pendente |
+
+# 9. O que a calibração de Z ensinou (2026-11-02)
+
+O `z_offset` foi de **0,550 → 0,900**. Esse erro de 0,35 mm não foi detectado pelo teste de papel,
+por três motivos que se somaram:
+
+1. **o papel embute a própria espessura** — ele para de passar quando a folha encosta, não quando o
+   bico toca a mesa;
+2. **o bico quente baba** — um fio de PLA na ponta faz o papel "encostar" antes do bico, e o
+   resultado muda a cada minuto;
+3. **o valor era herdado de outro filamento** (PETG a 250 °C / mesa 80 °C).
+
+A medida que resolveu foi a **primeira camada impressa**, com deslocamento conhecido via
+`SET_GCODE_OFFSET`: em +0,10 mm o filamento não aderia (alto), em −0,30 saiu película fina com
+linhas separadas e em −0,35 saiu camada fechada. O deslocamento foi então **incorporado** ao
+`z_offset` com `Z_OFFSET_APPLY_PROBE` (0,55 + 0,35 = 0,90) e validado por impressão de confirmação,
+que saiu perfeita.
+
+> **Regra que ficou:** a malha é **herdeira do `z_offset`**. Ao mudar o `z_offset`, os valores da
+> malha ficam defasados pela mesma quantidade e **precisam ser re-medidos**. Não foi o que fiz de
+> início, e a impressão de confirmação saiu sem adesão — o erro de 0,35 voltou embutido na malha.
+> Depois de re-medir, a média da malha deslocou-se exatamente 0,331 mm, confirmando o diagnóstico.
