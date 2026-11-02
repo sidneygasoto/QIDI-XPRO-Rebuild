@@ -101,7 +101,7 @@ Valor atual em uso: `pressure_advance = 0,0885` (único para as duas extrusoras 
 | Input shaping Y | `ei` 37,2 Hz | 2026-10-31 |
 | Malha 60 °C | 5×7, **−0,657 a −0,185** (amplitude 0,472, média −0,331) | 2026-11-02 |
 | **z_offset PLA** | **0,900** (antes 0,550 / PETG) | 2026-11-02 |
-| **Pressure advance** | **0,030** (era 0,0885) — cantos retos em 2–4 mm | 2026-11-02 |
+| **Pressure advance** | **0,030** (era 0,0885) — confirmado em torre refinada **com resfriamento** | 2026-11-02 |
 | Fluxo | — | pendente |
 | Temperatura | — | pendente |
 | Retração | — | pendente |
@@ -129,3 +129,33 @@ que saiu perfeita.
 > início, e a impressão de confirmação saiu sem adesão — o erro de 0,35 voltou embutido na malha.
 > Depois de re-medir, a média da malha deslocou-se exatamente 0,331 mm, confirmando o diagnóstico.
 
+
+# 10. Duas lições dos testes de parede (2026-11-02)
+
+## 10.1 PLA exige resfriamento — e eu não liguei
+
+Os primeiros cubos de parede única saíram com superfície bolhada e paredes colapsadas. A causa não
+era extrusão nem malha: **o ventilador de peça (`[fan]`, PF6) estava em 0 %**. PLA a 220 °C sem
+resfriamento não solidifica a tempo e a parede de 0,45 mm desaba.
+
+Depois de ligar `M106 S255` a partir da segunda camada, a mesma geometria saiu limpa, com parede de
+0,41–0,43 mm.
+
+**Regra:** todo teste de parede em PLA precisa de ventilador; a primeira camada fica sem, para
+aderir.
+
+## 10.2 O limite de impressão não é o `position_max`
+
+O curso do eixo X vai a 265 mm, mas a **área de impressão é de 220 mm**. Um teste posicionado em
+X 200–245 saiu da chapa. A malha, porém, está correta: ela é medida em **coordenadas da sonda** e a
+sonda alcança X=253 sobre o aço (se não houvesse chapa, a calibração teria falhado com
+`No trigger on probe after full movement`).
+
+**Regra:** posicionar impressões em X ≤ 210 e Y ≤ 145.
+
+## 10.3 Artefatos do gcode feito à mão
+
+Nas torres de PA aparecem marcas no canto a cada ~1,6 mm (oito camadas): são as transições de faixa,
+onde o `SET_PRESSURE_ADVANCE` muda. Não são defeito da máquina nem do PA. Para os testes que faltam
+(temperatura e retração), preferir as calibrações nativas do Orca, que geram geometria e
+resfriamento corretos.
